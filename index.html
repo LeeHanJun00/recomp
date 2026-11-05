@@ -101,6 +101,9 @@ section{display:flex;flex-direction:column;gap:12px;margin-top:18px}
 .modal .card{background:var(--surface);color:var(--fg);border-radius:16px;padding:22px 20px 16px;max-width:360px;width:100%;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
 .modal .card h2{font-size:22px}
 .modal .card p{margin:0;color:var(--muted);font-size:14px}
+.motto{padding:14px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.motto q{font-family:var(--display);font-size:19px;line-height:1.4;quotes:none;text-wrap:balance}
+.motto small{font-family:var(--mono);font-size:12px;color:var(--muted)}
 .verdict{border-radius:12px;padding:12px;background:var(--surface);border:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
 .verdict .dot{width:12px;height:12px;border-radius:50%;margin-top:5px;flex:none;background:var(--vc)}
 .verdict p{margin:2px 0 0;color:var(--muted);font-size:13.5px}
@@ -277,6 +280,59 @@ async function writeStatus(){
   try{ const c = await caches.open("recomp-status");
     await c.put("./__status", new Response(JSON.stringify({bodyDone: day().bodyDone ? TODAY : null}), {headers:{"content-type":"application/json"}})); }catch(e){}
 }
+const MOTTOS = [
+  "채널을 0명에서 7만 명까지 키운 것도 영상 하나씩이었어요. 몸도 세트 하나씩이에요.",
+  "완벽한 하루보다 빠지지 않는 6개월.",
+  "오늘 무게가 가벼워도 괜찮아요. 오늘 온 것 자체가 기록이에요.",
+  "가방 메고, 집 말고 헬스장 먼저.",
+  "근육은 기억해요. 9월의 39.7kg은 금방 돌아와요.",
+  "허리가 줄어드는 만큼 어깨는 넓어 보여요.",
+  "하기 싫은 날은 세트 절반만. 가는 것까지가 오늘의 목표예요.",
+  "지난번보다 1kg, 아니면 1회. 그게 성장이에요.",
+  "술 한 번 거르면 일주일 노력이 지켜져요.",
+  "편한 지금에서 한 걸음. 몸에서 먼저 해봐요.",
+  "단백질 160g 채우는 것도 운동이에요.",
+  "6개월 뒤의 내가 오늘의 나한테 고마워할 거예요.",
+  "체중계보다 거울, 거울보다 기록.",
+  "오늘 할 일은 하나. 오늘 루틴 끝내기.",
+  "잠도 훈련이에요. 7시간 자면 다음 무게가 올라가요.",
+  "3개월이면 9월보다 좋은 몸이에요.",
+  "의지는 떨어져도 루틴은 남아요.",
+  "어깨는 사레레를 배신하지 않아요.",
+  "오늘 안 가면 내일은 더 가기 싫어져요. 오늘 가요.",
+  "느려도 괜찮아요. 멈추지만 않으면 돼요.",
+  "퇴근길 1시간, 오늘 루틴 한 번 훑어보기.",
+  "점심은 고기 반찬부터, 밥은 2/3.",
+  "피곤한 날의 운동이 진짜 습관을 만들어요.",
+  "숫자가 안 움직이는 주도 있어요. 허리둘레를 믿어요.",
+  "남이랑 비교하지 말고 지난주의 나랑만 비교해요.",
+  "쉐이크 한 잔, 오늘도 잊지 않기.",
+  "자세가 무게보다 먼저예요.",
+  "작심삼일이면 사흘마다 다시 시작하면 돼요.",
+  "AI가 코드를 대신 짜줘도 운동은 대신 못 해줘요.",
+  "몸이 바뀌면 자신감이 바뀌고, 자신감이 바뀌면 다음 선택이 바뀌어요.",
+  "주 3번만 가도 그 주는 성공이에요.",
+  "오늘 흘린 땀은 6개월 뒤 셔츠 핏이 돼요.",
+  "마지막 2개가 근육을 만들어요.",
+  "회식이 있어도 괜찮아요. 내일 다시 원래대로.",
+  "하체를 하는 날이 제일 많이 바뀌는 날이에요.",
+  "기록하는 사람이 결국 이겨요.",
+  "등이 넓어지면 허리는 더 가늘어 보여요.",
+  "오늘의 1세트가 쌓여서 26주가 돼요.",
+  "할까 말까 할 때는 일단 옷부터 갈아입기."
+];
+function motto(){
+  const n = diffDays(START, TODAY);
+  if(n < 0) return {q:"내일부터 시작이에요. 오늘은 운동 가방만 챙겨두세요.", sub:`시작까지 D-${-n}`};
+  const sub = `D+${n+1} · 26주 중 ${Math.min(26,weekNo(TODAY))}주 차`;
+  const rec = S.days[TODAY] || {};
+  if(rec.done && rec.type!=="rest") return {q:"오늘 운동 끝. 이 기록 하나하나가 6개월을 만들어요.", sub};
+  const y = addDays(TODAY,-1), yr = S.days[y] || {};
+  if(n>=1 && parse(y).getDay()!==0 && !yr.done && parse(TODAY).getDay()!==0) return {q:"어제 쉬었으면 오늘은 꼭. 이틀 연속으로는 빠지지 않기로 했잖아요.", sub};
+  if(DELOAD.includes(weekNo(TODAY))) return {q:"디로드 주간이에요. 가볍게 하는 것도 계획의 일부예요.", sub};
+  if(parse(TODAY).getDay()===0) return {q:"오늘은 쉬는 날. 근육은 지금 자라고 있어요.", sub};
+  return {q: MOTTOS[(n*7) % MOTTOS.length], sub};
+}
 function renderToday(v){
   const rec = day();
   const type = typeFor(TODAY);
@@ -284,6 +340,8 @@ function renderToday(v){
   const w = weekNo(TODAY), ph = phaseOf(w);
   const sec = el(`<section></section>`);
   lateBanner(sec);
+  const m = motto(); const mc = el(`<div class="motto"><q></q><small></small></div>`);
+  mc.querySelector("q").textContent = m.q; mc.querySelector("small").textContent = m.sub; sec.append(mc);
   if(DELOAD.includes(w)) sec.append(el(`<div class="banner"><b>디로드 주간</b> · 이번 주는 평소 무게의 60%로 가볍게 해요. 쉬는 게 아니라 다시 성장하기 위한 주간이에요.</div>`));
   else sec.append(el(`<div class="banner" style="border-left-color:var(--ok)"><b>${ph.name}</b> · ${ph.tip}</div>`));
 
