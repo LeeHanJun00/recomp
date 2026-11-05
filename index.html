@@ -339,7 +339,7 @@ function renderBody(v){
   g.append(mk("weight","아침 공복 체중","kg", lastWeight()?fmt(lastWeight()):"88"));
   g.append(mk("sleep","수면","시간","7"));
   sec.append(g);
-  sec.append(mk("steps","걸음 수","보","8000","numeric"));
+  sec.append(mk("burn","하루 소모 칼로리 (갤럭시 워치)","kcal","2700","numeric"));
 
   const p = rec.protein||0;
   const pf = el(`<div class="field"><div style="display:flex;justify-content:space-between;align-items:baseline"><span class="lbl">단백질</span><span class="num" id="pv"><b style="font-size:22px">${p}</b> / ${PROTEIN} g</span></div>
@@ -387,11 +387,12 @@ function paintVerdict(){
     else if(dlt<=-0.3){ vc="var(--ok)"; t=`주 ${fmt(-dlt)}kg 감소 · 잘 가고 있어요`; s="지금 식단과 운동 그대로 유지하세요."; }
     else {
       const stalled2 = c!=null && (b-c)>-0.3;
-      if(stalled2){ vc="var(--warn)"; t="2주 연속 거의 그대로"; s="하루 150~200kcal 줄이거나 걸음 수를 2,000보 늘리세요."; }
+      if(stalled2){ vc="var(--warn)"; t="2주 연속 거의 그대로"; s="하루 150~200kcal 덜 먹거나, 소모 칼로리를 하루 200kcal 정도 늘리세요."; }
       else { vc="var(--faint)"; t=`이번 주 ${dlt>0?"+":""}${fmt(dlt)}kg`; s="한 주는 변동일 수 있어요. 다음 주까지 지켜봐요."; }
     }
   }
-  const avgTxt = `이번 주 평균 ${a!=null?fmt(a)+"kg":"–"} · 지난주 ${b!=null?fmt(b)+"kg":"–"}`;
+  const bv=[]; for(let i=0;i<7;i++){ const r=S.days[addDays(ws,i)]; if(r&&r.burn) bv.push(r.burn); }
+  const avgTxt = `이번 주 평균 ${a!=null?fmt(a)+"kg":"–"} · 지난주 ${b!=null?fmt(b)+"kg":"–"}${bv.length?` · 평균 소모 ${Math.round(bv.reduce((x,y)=>x+y,0)/bv.length).toLocaleString()}kcal`:""}`;
   box.replaceChildren(el(`<div class="verdict" style="--vc:${vc}"><span class="dot"></span><div><b>${t}</b><p>${s}</p><p class="num" style="font-size:12.5px">${avgTxt}</p></div></div>`));
 }
 
@@ -496,8 +497,8 @@ async function exportData(){
   if(S.tab==="progress") render();
 }
 function exportCSV(){
-  const rows = [["date","type","exercise","set","kg","reps","done","weight","protein","sleep","steps","bf","smm","waist"]];
-  Object.keys(S.days).sort().forEach(k=>{ const r=S.days[k]; const base=[r.weight,r.protein,r.sleep,r.steps,r.bf,r.smm,r.waist].map(v=>v??"");
+  const rows = [["date","type","exercise","set","kg","reps","done","weight","protein","sleep","burn_kcal","bf","smm","waist"]];
+  Object.keys(S.days).sort().forEach(k=>{ const r=S.days[k]; const base=[r.weight,r.protein,r.sleep,r.burn,r.bf,r.smm,r.waist].map(v=>v??"");
     let any=false;
     Object.entries(r.ex||{}).forEach(([n,sets])=>sets.forEach((s,i)=>{ if(s && (s.w!=null||s.r!=null)){ any=true; rows.push([k,r.type||"",n,i+1,s.w??"",s.r??"",s.ok?1:0,...base]); } }));
     if(!any) rows.push([k,r.type||"","","","","","",...base]); });
