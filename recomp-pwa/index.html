@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#eef0f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121518" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="리컴프">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>리컴프 로그북</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: one-hand gym logbook — sticky date header, card per exercise, bottom tab bar. Bumper-plate colors mark the three days. */
+:root{
+  --bg:#eef0f2; --surface:#ffffff; --sunk:#e3e6ea; --line:#d3d8de;
+  --fg:#16191d; --muted:#5d6670; --faint:#8a939c;
+  --push:#d23a32; --pull:#2364c4; --legs:#c99500; --rest:#6b7681;
+  --ok:#1f8a4c; --warn:#b86e00;
+  --accent:var(--push);
+  --display:"Black Han Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121518; --surface:#1b1f24; --sunk:#252a30; --line:#2f353c;
+  --fg:#eceff2; --muted:#9aa3ad; --faint:#6c757e;
+  --push:#f0625a; --pull:#5b93ea; --legs:#e8b52a; --rest:#8d98a3;
+  --ok:#43c07a; --warn:#e6a23c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121518; --surface:#1b1f24; --sunk:#252a30; --line:#2f353c;
+  --fg:#eceff2; --muted:#9aa3ad; --faint:#6c757e;
+  --push:#f0625a; --pull:#5b93ea; --legs:#e8b52a; --rest:#8d98a3;
+  --ok:#43c07a; --warn:#e6a23c; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--fg);font:15px/1.55 var(--body);-webkit-font-smoothing:antialiased}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:env(safe-area-inset-top,0px) 120px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:14px 10px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line)}
+.brand{font-family:var(--display);font-size:22px;letter-spacing:.5px;line-height:1}
+.brand small{display:block;font-family:var(--body);font-size:12px;color:var(--muted);letter-spacing:0;margin-top:6px;font-weight:500}
+.weekpill{font-family:var(--mono);font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+h2{font-family:var(--display);font-weight:400;font-size:20px;margin:0;text-wrap:balance}
+.lbl{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+section{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+.banner{padding:10px 12px;border-radius:10px;background:var(--sunk);font-size:13.5px;color:var(--fg);border-left:4px solid var(--warn)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--line);background:var(--surface);color:var(--fg);font:600 14px var(--body);padding:8px 14px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.chip i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.chip[aria-pressed="true"]{border-color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--surface))}
+.chip:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--pull);outline-offset:2px}
+.dayhead{display:flex;align-items:center;gap:12px}
+.plate{width:46px;height:46px;border-radius:50%;background:var(--c);display:grid;place-items:center;color:#fff;font-family:var(--display);font-size:17px;flex:none;box-shadow:inset 0 0 0 5px color-mix(in srgb,#000 18%,var(--c))}
+.dayhead p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.ex{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 12px 10px}
+.ex-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.ex-name{font-weight:700;font-size:15.5px;min-width:0}
+.target{font-family:var(--mono);font-size:12.5px;color:var(--muted);white-space:nowrap}
+.last{font-size:12.5px;color:var(--muted);margin-top:2px}
+.up{display:inline-block;font-size:11.5px;font-weight:700;color:var(--ok);margin-left:6px}
+.sets{display:grid;grid-template-columns:28px 1fr 1fr 44px;gap:6px 8px;align-items:center;margin-top:10px}
+.sets .h{font-size:11px;color:var(--faint);font-weight:700;letter-spacing:.06em}
+.sn{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:center}
+.sets input{width:100%;min-width:0;font:600 16px var(--mono);padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--sunk);color:var(--fg);text-align:right}
+.sets input::placeholder{color:var(--faint);font-weight:500}
+.ck{width:44px;height:40px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface);cursor:pointer;display:grid;place-items:center;color:var(--faint);font-size:18px}
+.ck[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:#fff}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.row .t{font-weight:700}
+.row .s{font-size:12.5px;color:var(--muted)}
+.btn{font:700 16px var(--body);padding:14px;border-radius:12px;border:0;background:var(--c,var(--fg));color:#fff;cursor:pointer;width:100%}
+.btn[disabled]{opacity:.55;cursor:default}
+.btn.ghost{background:var(--sunk);color:var(--fg)}
+.toggle{width:54px;height:32px;border-radius:999px;border:0;background:var(--line);position:relative;cursor:pointer;flex:none}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:var(--surface);transition:left .15s}
+.toggle[aria-pressed="true"]{background:var(--ok)}
+.toggle[aria-pressed="true"]::after{left:25px}
+.field{display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.field .in{display:flex;align-items:baseline;gap:8px}
+.field input{flex:1;min-width:0;font:600 26px var(--mono);border:0;background:transparent;color:var(--fg);padding:0}
+.field input::placeholder{color:var(--faint)}
+.unit{color:var(--muted);font-size:14px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.grid2 input{width:100%}
+.bar{height:10px;border-radius:999px;background:var(--sunk);overflow:hidden}
+.bar b{display:block;height:100%;background:var(--ok);border-radius:999px}
+.quick{display:flex;gap:6px;flex-wrap:wrap}
+.quick button{font:600 13px var(--mono);padding:7px 11px;border-radius:8px;border:1px solid var(--line);background:var(--sunk);color:var(--fg);cursor:pointer}
+.verdict{border-radius:12px;padding:12px;background:var(--surface);border:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+.verdict .dot{width:12px;height:12px;border-radius:50%;margin-top:5px;flex:none;background:var(--vc)}
+.verdict p{margin:2px 0 0;color:var(--muted);font-size:13.5px}
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 8px 6px;overflow-x:auto}
+.chartbox svg{display:block;width:100%;height:auto}
+.empty{color:var(--muted);font-size:13.5px;padding:24px 8px;text-align:center}
+.weeks{display:grid;grid-template-columns:repeat(13,1fr);gap:4px}
+.wk{aspect-ratio:1;border-radius:4px;background:var(--sunk);position:relative;max-width:100%}
+.wk.ok{background:var(--ok)} .wk.part{background:color-mix(in srgb,var(--ok) 40%,var(--sunk))}
+.wk.dl{outline:1.5px dashed var(--warn);outline-offset:-1.5px}
+.wk.now{box-shadow:0 0 0 2px var(--fg)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:9px 6px;text-align:right;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{font-size:11.5px;color:var(--muted);font-weight:700;letter-spacing:.04em}
+.tablebox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px 10px;overflow-x:auto}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav.tabs div{display:flex;width:100%;max-width:560px}
+nav.tabs button{flex:1;border:0;background:none;color:var(--muted);font:700 13px var(--body);padding:12px 4px 14px;cursor:pointer;border-top:3px solid transparent}
+nav.tabs button[aria-selected="true"]{color:var(--fg);border-top-color:var(--fg)}
+.note{font-size:12px;color:var(--faint);text-align:center;margin-top:20px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+<style>html,body{margin:0}body{min-height:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">리컴프 로그북<small id="dateline">불러오는 중</small></div>
+    <span class="weekpill" id="weekpill">W1 / 26</span>
+  </header>
+  <main id="view"></main>
+  <p class="note" id="savenote">이 폰에만 저장돼요</p>
+</div>
+<nav class="tabs" aria-label="화면"><div role="tablist">
+  <button role="tab" id="tab-today" data-tab="today" aria-selected="true">오늘 운동</button>
+  <button role="tab" id="tab-body" data-tab="body" aria-selected="false">몸 기록</button>
+  <button role="tab" id="tab-progress" data-tab="progress" aria-selected="false">변화</button>
+</div></nav>
+
+<script>
+(() => {
+// ---------- plan ----------
+const BASE = {date:"2026-11-05", weight:88, bf:23, smm:38};
+const GOAL = {weight:"81~84", bf:"14~17", smm:"39~40"};
+const START = "2026-11-06";
+const PROTEIN = 160;
+const ROT = ["push","pull","legs"];
+const TYPES = {
+  push:{name:"밀기", sub:"가슴 · 어깨 · 삼두", c:"var(--push)", ex:[
+    ["덤벨 인클라인 벤치",4,"8~10"],["스미스 벤치프레스",3,"8~10"],["숄더 프레스 머신",3,"8~10"],
+    ["펙덱 플라이",3,"12~15"],["덤벨 사이드 레터럴 레이즈",4,"12~15"],["케이블 푸쉬다운",3,"12~15"]]},
+  pull:{name:"당기기", sub:"등 · 후면 어깨 · 이두", c:"var(--pull)", ex:[
+    ["랫풀다운 (와이드 그립)",4,"8~10"],["어시스트 풀업",3,"8~10"],["시티드 케이블 로우",3,"10~12"],
+    ["리버스 펙덱 플라이",3,"12~15"],["케이블 사이드 레터럴 레이즈",3,"12~15"],["덤벨 컬",3,"10~12"]]},
+  legs:{name:"하체", sub:"하체 · 복근", c:"var(--legs)", ex:[
+    ["스미스 스쿼트",4,"8~10"],["루마니안 데드리프트",3,"8~10"],["레그프레스",3,"10~12"],
+    ["레그컬",3,"12~15"],["레그 익스텐션",3,"12~15"],["행잉 니레이즈",3,"10~15"]]},
+  rest:{name:"휴식", sub:"완전 휴식 · 걷기만", c:"var(--rest)", ex:[]}
+};
+const PHASES = [
+  {w:[1,8], name:"1단계 · 습관과 자세", tip:"세트마다 2~3개 여유를 남기세요. 처음 2주는 예전 무게의 60~70%."},
+  {w:[9,16], name:"2단계 · 근성장 본격화", tip:"무게를 올리고 마지막 세트는 1~2개 여유까지."},
+  {w:[17,26], name:"3단계 · 정체 돌파와 마무리", tip:"체지방 마무리. 필요하면 칼로리를 조금 더 조정해요."}
+];
+const DELOAD = [8,16,24];
+
+// ---------- dates ----------
+const pad = n => String(n).padStart(2,"0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y,m-1,d); };
+const addDays = (s,n) => { const d = parse(s); d.setDate(d.getDate()+n); return ymd(d); };
+const diffDays = (a,b) => Math.round((parse(b)-parse(a))/864e5);
+const TODAY = ymd(new Date());
+const weekNo = s => Math.max(1, Math.floor(diffDays(START,s)/7)+1);
+const weekStart = s => { const d = parse(s); const wd = (d.getDay()+6)%7; d.setDate(d.getDate()-wd); return ymd(d); };
+const DOW = ["일","월","화","수","목","금","토"];
+
+// ---------- store ----------
+const S = { days:{}, state:{next:0}, tab:"today", mode:"local" };
+let dbApi=null, dayCol=null, stateRef=null;
+const dirty = new Set();
+const timers = {}; const chains = {};
+const LSK = "recomp-logbook-v1";
+
+function day(d=TODAY){ return S.days[d] || (S.days[d] = {date:d}); }
+function lsSave(){ try{ localStorage.setItem(LSK, JSON.stringify({days:S.days,state:S.state,lastBackup:S.lastBackup||null})); }catch(e){ note("저장 실패 · 폰 저장 공간을 확인해주세요"); } }
+function lsLoad(){ try{ const v = JSON.parse(localStorage.getItem(LSK)||"null"); if(v){ S.days=v.days||{}; S.state=v.state||{next:0}; S.lastBackup=v.lastBackup||null; } }catch(e){} }
+
+function note(t){ document.getElementById("savenote").textContent = t; }
+function save(d){
+  dirty.add(d);
+  clearTimeout(timers[d]);
+  timers[d] = setTimeout(() => flush(d), 600);
+  lsSave();
+}
+function flush(d){
+  if(!dayCol){ dirty.delete(d); lsSave(); backupNote(); return; }
+  const body = JSON.parse(JSON.stringify(S.days[d]));
+  chains[d] = (chains[d]||Promise.resolve()).then(() => dayCol.doc(d).set(body))
+    .then(() => { if(!timers[d] || true) dirty.delete(d); note("저장됨 · "+new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})); })
+    .catch(e => { note(e && e.code==="quota_exceeded" ? "저장 공간이 가득 찼어요" : "저장 실패 · 잠시 후 다시 시도해요"); lsSave(); });
+}
+function saveState(){
+  if(stateRef) stateRef.set({...S.state}).catch(()=>{});
+  lsSave();
+}
+
+// ---------- helpers ----------
+function typeFor(d){
+  const rec = S.days[d];
+  if(rec && rec.type) return rec.type;
+  if(parse(d).getDay()===0) return "rest";
+  return ROT[S.state.next||0];
+}
+function lastSession(type, exName, before){
+  const keys = Object.keys(S.days).filter(k => k<before).sort().reverse();
+  for(const k of keys){
+    const r = S.days[k];
+    if(r.type===type && r.ex && r.ex[exName] && r.ex[exName].some(s=>s && s.w!=null && s.r!=null)) return {date:k, sets:r.ex[exName]};
+  }
+  return null;
+}
+function topRep(range){ return Number(String(range).split("~").pop()); }
+function phaseOf(w){ return PHASES.find(p => w>=p.w[0] && w<=p.w[1]) || PHASES[2]; }
+function fmt(n,dg=1){ return (n==null||isNaN(n)) ? "–" : Number(n).toFixed(dg).replace(/\.0$/,""); }
+function weekAvg(ws){
+  const v=[]; for(let i=0;i<7;i++){ const r=S.days[addDays(ws,i)]; if(r && r.weight) v.push(r.weight); }
+  return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null;
+}
+function workoutsInWeek(ws){
+  let n=0; for(let i=0;i<7;i++){ const r=S.days[addDays(ws,i)]; if(r && r.done && r.type!=="rest") n++; } return n;
+}
+const el = (h) => { const t=document.createElement("template"); t.innerHTML=h.trim(); return t.content.firstElementChild; };
+
+// ---------- header ----------
+function header(){
+  const d = parse(TODAY);
+  document.getElementById("dateline").textContent = `${d.getMonth()+1}월 ${d.getDate()}일 ${DOW[d.getDay()]}요일`;
+  const w = weekNo(TODAY);
+  document.getElementById("weekpill").textContent = TODAY<START ? "D-"+diffDays(TODAY,START) : `W${Math.min(w,26)} / 26`;
+}
+
+// ---------- TODAY ----------
+function renderToday(v){
+  const rec = day();
+  const type = typeFor(TODAY);
+  const T = TYPES[type];
+  const w = weekNo(TODAY), ph = phaseOf(w);
+  const sec = el(`<section></section>`);
+  if(DELOAD.includes(w)) sec.append(el(`<div class="banner"><b>디로드 주간</b> · 이번 주는 평소 무게의 60%로 가볍게 해요. 쉬는 게 아니라 다시 성장하기 위한 주간이에요.</div>`));
+  else sec.append(el(`<div class="banner" style="border-left-color:var(--ok)"><b>${ph.name}</b> · ${ph.tip}</div>`));
+
+  const chips = el(`<div class="chips" role="group" aria-label="오늘 루틴"></div>`);
+  for(const k of ["push","pull","legs","rest"]){
+    const b = el(`<button class="chip" style="--c:${TYPES[k].c}" aria-pressed="${k===type}"><i></i>${TYPES[k].name}</button>`);
+    b.onclick = () => { rec.type = k; save(TODAY); render(); };
+    chips.append(b);
+  }
+  sec.append(chips);
+
+  sec.append(el(`<div class="dayhead" style="--c:${T.c}"><div class="plate">${T.name[0]}</div><div><h2>${T.name} 데이</h2><p>${T.sub}${type!=="rest" && !rec.done ? " · 순환 순서대로 골랐어요" : ""}</p></div></div>`));
+
+  if(type==="rest"){
+    sec.append(el(`<div class="row"><div><div class="t">오늘은 쉬는 날</div><div class="s">근육은 쉬는 동안 자라요. 걷기 8,000보 정도면 충분해요.</div></div></div>`));
+  }
+  rec.ex = rec.ex || {};
+  for(const [name,sets,range] of T.ex){
+    const last = lastSession(type,name,TODAY);
+    const cur = rec.ex[name] = rec.ex[name] || [];
+    const hitTop = last && last.sets.length>=sets && last.sets.slice(0,sets).every(s=>s && s.r>=topRep(range));
+    const card = el(`<div class="ex" style="--c:${T.c}">
+      <div class="ex-top"><div class="ex-name">${name}</div><div class="target">${sets} × ${range}</div></div>
+      <div class="last">${last ? "지난번 "+last.sets.filter(s=>s&&s.w!=null).map(s=>`${fmt(s.w)}×${s.r}`).join(", ") : "첫 기록이에요 · 가벼운 무게로 자세부터"}${hitTop?'<span class="up">↑ 무게 올릴 때</span>':""}</div>
+      <div class="sets"><span class="h">SET</span><span class="h">KG</span><span class="h">REPS</span><span></span></div>
+    </div>`);
+    const grid = card.querySelector(".sets");
+    for(let i=0;i<sets;i++){
+      const s = cur[i] = cur[i] || {};
+      const ls = last && last.sets[i];
+      const id = `${type}-${name}-${i}`.replace(/[^\w가-힣-]/g,"_");
+      const wIn = el(`<input id="w-${id}" inputmode="decimal" aria-label="${name} ${i+1}세트 무게" placeholder="${ls&&ls.w!=null?fmt(ls.w):"kg"}" value="${s.w??""}">`);
+      const rIn = el(`<input id="r-${id}" inputmode="numeric" aria-label="${name} ${i+1}세트 횟수" placeholder="${ls&&ls.r!=null?ls.r:range.split("~")[0]}" value="${s.r??""}">`);
+      const ck = el(`<button class="ck" aria-label="${i+1}세트 완료" aria-pressed="${!!s.ok}">✓</button>`);
+      wIn.oninput = () => { rec.type=type; const n=parseFloat(wIn.value); s.w = isNaN(n)?null:n; save(TODAY); };
+      rIn.oninput = () => { rec.type=type; const n=parseInt(rIn.value); s.r = isNaN(n)?null:n; save(TODAY); };
+      ck.onclick = () => {
+        rec.type=type; s.ok = !s.ok;
+        if(s.ok){
+          if(s.w==null){ const n=parseFloat(wIn.placeholder); if(!isNaN(n)){ s.w=n; wIn.value=fmt(n);} }
+          if(s.r==null){ const n=parseInt(rIn.placeholder); if(!isNaN(n)){ s.r=n; rIn.value=n;} }
+        }
+        ck.setAttribute("aria-pressed", s.ok); save(TODAY); updateDoneBtn();
+      };
+      grid.append(el(`<span class="sn">${i+1}</span>`), wIn, rIn, ck);
+    }
+    sec.append(card);
+  }
+
+  const walk = el(`<div class="row"><div><div class="t">인클라인 걷기 20분</div><div class="s">경사 10~12 · 숨이 조금 찰 정도</div></div><button class="toggle" id="walk" aria-label="인클라인 걷기 완료" aria-pressed="${!!rec.walk}"></button></div>`);
+  walk.querySelector("button").onclick = (e) => { rec.walk=!rec.walk; e.currentTarget.setAttribute("aria-pressed",rec.walk); save(TODAY); };
+  if(type!=="rest") sec.append(walk);
+
+  const btn = el(`<button class="btn" id="donebtn" style="--c:${T.c}"></button>`);
+  function updateDoneBtn(){
+    const total = T.ex.reduce((a,e)=>a+e[1],0);
+    const done = T.ex.reduce((a,[n,c])=>a+(rec.ex[n]||[]).slice(0,c).filter(s=>s&&s.ok).length,0);
+    btn.textContent = rec.done ? "완료한 운동 · 다시 열기" : `운동 완료 (${done}/${total} 세트)`;
+    btn.className = rec.done ? "btn ghost" : "btn";
+  }
+  btn.onclick = () => {
+    if(!rec.done){
+      rec.done = true; rec.type = type;
+      if(type!=="rest"){ S.state.next = (ROT.indexOf(type)+1)%3; saveState(); }
+    } else { rec.done = false; }
+    save(TODAY); render();
+  };
+  updateDoneBtn();
+  sec.append(btn);
+  if(rec.done && type!=="rest") sec.append(el(`<p class="s" style="text-align:center;color:var(--muted);margin:0">다음 운동은 <b>${TYPES[ROT[S.state.next]].name}</b>예요. 몸 기록 탭에서 체중과 단백질도 적어주세요.</p>`));
+  v.append(sec);
+}
+
+// ---------- BODY ----------
+function renderBody(v){
+  const rec = day();
+  const sec = el(`<section></section>`);
+  sec.append(el(`<h2>오늘 몸 기록</h2>`));
+  const g = el(`<div class="grid2"></div>`);
+  const mk = (key,label,unit,ph,mode="decimal") => {
+    const f = el(`<label class="field" for="f-${key}"><span class="lbl">${label}</span><span class="in"><input id="f-${key}" inputmode="${mode}" placeholder="${ph}" value="${rec[key]??""}"><span class="unit">${unit}</span></span></label>`);
+    const i = f.querySelector("input");
+    i.oninput = () => { const n=parseFloat(i.value); rec[key]=isNaN(n)?null:n; save(TODAY); if(key==="weight") paintVerdict(); };
+    return f;
+  };
+  g.append(mk("weight","아침 공복 체중","kg", lastWeight()?fmt(lastWeight()):"88"));
+  g.append(mk("sleep","수면","시간","7"));
+  sec.append(g);
+  sec.append(mk("steps","걸음 수","보","8000","numeric"));
+
+  const p = rec.protein||0;
+  const pf = el(`<div class="field"><div style="display:flex;justify-content:space-between;align-items:baseline"><span class="lbl">단백질</span><span class="num" id="pv"><b style="font-size:22px">${p}</b> / ${PROTEIN} g</span></div>
+    <div class="bar"><b id="pb" style="width:${Math.min(100,p/PROTEIN*100)}%"></b></div>
+    <div class="quick"></div></div>`);
+  const q = pf.querySelector(".quick");
+  const addP = n => { rec.protein = Math.max(0,(rec.protein||0)+n); save(TODAY);
+    pf.querySelector("#pv").innerHTML = `<b style="font-size:22px">${rec.protein}</b> / ${PROTEIN} g`;
+    pf.querySelector("#pb").style.width = Math.min(100,rec.protein/PROTEIN*100)+"%"; };
+  [["닭가슴살 +23",23],["계란 +6",6],["쉐이크 +25",25],["요거트 +18",18],["+10",10],["−10",-10]].forEach(([t,n])=>{
+    const b=el(`<button>${t}</button>`); b.onclick=()=>addP(n); q.append(b); });
+  sec.append(pf);
+
+  sec.append(el(`<h2 style="margin-top:8px">이번 주 판정</h2>`));
+  const vb = el(`<div id="verdict"></div>`); sec.append(vb);
+  sec.append(el(`<p style="margin:0;font-size:12.5px;color:var(--muted)">기준: 하루 2,300~2,400kcal · 단백질 160g. 체중이 그대로여도 허리둘레가 줄고 근력이 오르면 잘 가고 있는 거예요.</p>`));
+  v.append(sec);
+  paintVerdict();
+}
+function lastWeight(){ const k=Object.keys(S.days).filter(k=>S.days[k].weight).sort().pop(); return k?S.days[k].weight:null; }
+function paintVerdict(){
+  const box = document.getElementById("verdict"); if(!box) return;
+  const ws = weekStart(TODAY);
+  const a = weekAvg(ws), b = weekAvg(addDays(ws,-7)), c = weekAvg(addDays(ws,-14));
+  let vc="var(--faint)", t="데이터 모으는 중", s="매일 아침 공복 체중을 적으면, 지난주와 비교해서 칼로리 조정이 필요한지 알려드려요.";
+  if(a!=null && b!=null){
+    const dlt = a-b;
+    if(dlt<=-1){ vc="var(--warn)"; t=`주 ${fmt(-dlt)}kg 감소 · 너무 빨라요`; s="근육이 같이 빠질 수 있어요. 하루 150kcal 늘리세요."; }
+    else if(dlt<=-0.3){ vc="var(--ok)"; t=`주 ${fmt(-dlt)}kg 감소 · 잘 가고 있어요`; s="지금 식단과 운동 그대로 유지하세요."; }
+    else {
+      const stalled2 = c!=null && (b-c)>-0.3;
+      if(stalled2){ vc="var(--warn)"; t="2주 연속 거의 그대로"; s="하루 150~200kcal 줄이거나 걸음 수를 2,000보 늘리세요."; }
+      else { vc="var(--faint)"; t=`이번 주 ${dlt>0?"+":""}${fmt(dlt)}kg`; s="한 주는 변동일 수 있어요. 다음 주까지 지켜봐요."; }
+    }
+  }
+  const avgTxt = `이번 주 평균 ${a!=null?fmt(a)+"kg":"–"} · 지난주 ${b!=null?fmt(b)+"kg":"–"}`;
+  box.replaceChildren(el(`<div class="verdict" style="--vc:${vc}"><span class="dot"></span><div><b>${t}</b><p>${s}</p><p class="num" style="font-size:12.5px">${avgTxt}</p></div></div>`));
+}
+
+// ---------- PROGRESS ----------
+function renderProgress(v){
+  const sec = el(`<section></section>`);
+  sec.append(el(`<h2>체중 변화</h2>`));
+  const pts = [{d:BASE.date, w:BASE.weight, base:true}, ...Object.keys(S.days).sort().filter(k=>S.days[k].weight && k!==BASE.date).map(k=>({d:k,w:S.days[k].weight}))];
+  sec.append(chart(pts));
+
+  const ws0 = weekStart(START);
+  const thisW = Math.min(26, weekNo(TODAY));
+  const nThis = workoutsInWeek(weekStart(TODAY));
+  sec.append(el(`<div class="row"><div><div class="t">이번 주 운동 <span class="num">${nThis}</span> / 5</div><div class="s">${nThis>=3?"이번 주는 이미 성공이에요. 3번 이상이면 합격.":"3번 이상 가면 이번 주는 성공이에요."}</div></div><div class="plate" style="--c:${nThis>=3?"var(--ok)":"var(--rest)"};width:40px;height:40px;font-size:15px">${nThis}</div></div>`));
+
+  sec.append(el(`<h2 style="margin-top:8px">26주 지도</h2>`));
+  const grid = el(`<div class="weeks" aria-label="주차별 운동 횟수"></div>`);
+  for(let w=1; w<=26; w++){
+    const st = addDays(ws0,(w-1)*7);
+    const n = st<=TODAY ? workoutsInWeek(st) : 0;
+    const cls = ["wk", n>=3?"ok":n>0?"part":"", DELOAD.includes(w)?"dl":"", w===thisW && TODAY>=START?"now":""].join(" ");
+    grid.append(el(`<div class="${cls}" title="${w}주차 · ${n}회"></div>`));
+  }
+  sec.append(grid);
+  sec.append(el(`<div class="legend"><span><i style="background:var(--ok)"></i>3회 이상</span><span><i style="background:color-mix(in srgb,var(--ok) 40%,var(--sunk))"></i>1~2회</span><span><i style="outline:1.5px dashed var(--warn);outline-offset:-1.5px"></i>디로드 주</span><span><i style="box-shadow:0 0 0 2px var(--fg)"></i>이번 주</span></div>`));
+
+  sec.append(el(`<h2 style="margin-top:8px">월간 인바디</h2>`));
+  const meas = Object.keys(S.days).sort().filter(k=>S.days[k].bf||S.days[k].smm||S.days[k].waist);
+  const tb = el(`<div class="tablebox"><table><thead><tr><th>날짜</th><th>체중 kg</th><th>체지방 %</th><th>골격근 kg</th><th>허리 cm</th></tr></thead><tbody></tbody></table></div>`);
+  const body = tb.querySelector("tbody");
+  body.append(el(`<tr><td>시작 (11/5)</td><td class="num">${BASE.weight}</td><td class="num">${BASE.bf}</td><td class="num">${BASE.smm}</td><td class="num">–</td></tr>`));
+  meas.forEach(k=>{ const r=S.days[k]; const d=parse(k);
+    body.append(el(`<tr><td>${d.getMonth()+1}/${d.getDate()}</td><td class="num">${fmt(r.weight)}</td><td class="num">${fmt(r.bf)}</td><td class="num">${fmt(r.smm)}</td><td class="num">${fmt(r.waist)}</td></tr>`)); });
+  body.append(el(`<tr><td><b>6개월 목표</b></td><td class="num">${GOAL.weight}</td><td class="num">${GOAL.bf}</td><td class="num">${GOAL.smm}</td><td class="num">↓</td></tr>`));
+  sec.append(tb);
+
+  const rec = day();
+  const f = el(`<div class="field"><span class="lbl">오늘 측정값 입력 (한 달에 한 번)</span>
+    <div class="grid2" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <label class="in" for="m-bf" style="flex-direction:column;align-items:stretch;gap:2px"><span class="unit">체지방 %</span><input id="m-bf" inputmode="decimal" placeholder="23" value="${rec.bf??""}" style="font-size:20px"></label>
+      <label class="in" for="m-smm" style="flex-direction:column;align-items:stretch;gap:2px"><span class="unit">골격근 kg</span><input id="m-smm" inputmode="decimal" placeholder="38" value="${rec.smm??""}" style="font-size:20px"></label>
+      <label class="in" for="m-waist" style="flex-direction:column;align-items:stretch;gap:2px"><span class="unit">허리 cm</span><input id="m-waist" inputmode="decimal" placeholder="cm" value="${rec.waist??""}" style="font-size:20px"></label>
+    </div><span class="unit" style="font-size:12px">사진 3장(앞·옆·뒤)도 같은 날 찍어두세요.</span></div>`);
+  ["bf","smm","waist"].forEach(k=>{ const i=f.querySelector("#m-"+k); i.oninput=()=>{ const n=parseFloat(i.value); rec[k]=isNaN(n)?null:n; save(TODAY); }; i.onchange=()=>render(); });
+  sec.append(f);
+  renderBackup(sec);
+  v.append(sec);
+}
+function chart(pts){
+  const box = el(`<div class="chartbox"></div>`);
+  if(pts.length<2){ box.append(el(`<div class="empty">시작 체중 88kg에서 출발해요.<br>몸 기록 탭에 아침 체중을 적으면 여기에 선이 그려져요.</div>`)); }
+  const W=380,H=220,L=30,R=8,T=12,B=26;
+  const d0 = pts[0].d, d1 = pts.length>1 ? pts[pts.length-1].d : addDays(d0,14);
+  const span = Math.max(14, diffDays(d0,d1));
+  const ws = pts.map(p=>p.w);
+  let lo = Math.floor(Math.min(...ws, 84)-0.5), hi = Math.ceil(Math.max(...ws)+0.5);
+  const x = d => L + diffDays(d0,d)/span*(W-L-R);
+  const y = w => T + (hi-w)/(hi-lo)*(H-T-B);
+  let g = "";
+  const step = (hi-lo)>8?2:1;
+  for(let v=lo; v<=hi; v+=step){ g += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${v}</text>`; }
+  // goal band 81–84
+  const gb1=Math.max(lo,81), gb2=Math.min(hi,84);
+  if(gb2>gb1) g += `<rect x="${L}" y="${y(gb2)}" width="${W-L-R}" height="${y(gb1)-y(gb2)}" fill="var(--ok)" opacity=".10"/><text x="${W-R-4}" y="${y(gb2)+13}" text-anchor="end" font-size="11" fill="var(--ok)">목표 81~84kg</text>`;
+  // x labels
+  const ticks = 4;
+  for(let i=0;i<=ticks;i++){ const dd=addDays(d0,Math.round(span*i/ticks)); const p=parse(dd); g+=`<text x="${x(dd)}" y="${H-8}" text-anchor="${i===0?"start":i===ticks?"end":"middle"}" font-size="11" fill="var(--muted)">${p.getMonth()+1}/${p.getDate()}</text>`; }
+  if(pts.length>=2){
+    // 7-day rolling avg
+    const avg = pts.map((p,i)=>{ const win=pts.filter(q=>diffDays(q.d,p.d)>=0 && diffDays(q.d,p.d)<7); return {d:p.d,w:win.reduce((a,b)=>a+b.w,0)/win.length}; });
+    g += pts.map(p=>`<circle cx="${x(p.d)}" cy="${y(p.w)}" r="2.6" fill="var(--faint)"/>`).join("");
+    g += `<polyline points="${avg.map(p=>`${x(p.d)},${y(p.w)}`).join(" ")}" fill="none" stroke="var(--fg)" stroke-width="2.4" stroke-linejoin="round"/>`;
+    const e = avg[avg.length-1];
+    g += `<circle cx="${x(e.d)}" cy="${y(e.w)}" r="5" fill="var(--fg)"/><text x="${Math.min(x(e.d),W-R-60)}" y="${y(e.w)-10}" font-size="12.5" font-weight="600" fill="var(--fg)" font-family="IBM Plex Mono,monospace">${fmt(e.w)}kg</text>`;
+  } else {
+    g += `<circle cx="${x(d0)}" cy="${y(pts[0].w)}" r="5" fill="var(--fg)"/><text x="${x(d0)+8}" y="${y(pts[0].w)-8}" font-size="12.5" font-weight="600" fill="var(--fg)" font-family="IBM Plex Mono,monospace">88kg 시작</text>`;
+  }
+  box.prepend(el(`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="체중 추이와 7일 평균">${g}</svg>`));
+  if(pts.length>=2) box.append(el(`<div class="legend" style="padding:4px 6px"><span><i style="background:var(--faint);border-radius:50%"></i>매일 체중</span><span><i style="background:var(--fg);height:3px"></i>7일 평균</span></div>`));
+  return box;
+}
+
+// ---------- backup ----------
+function backupNote(){
+  const lb = S.lastBackup;
+  const age = lb ? diffDays(lb.slice(0,10), TODAY) : null;
+  note(lb ? `이 폰에만 저장돼요 · 마지막 백업 ${age===0?"오늘":age+"일 전"}` : "이 폰에만 저장돼요 · 아직 백업 전이에요");
+}
+async function exportData(){
+  const payload = JSON.stringify({app:"recomp-logbook", version:1, exportedAt:new Date().toISOString(), days:S.days, state:S.state}, null, 1);
+  const name = `recomp-backup-${TODAY}.json`;
+  const file = new File([payload], name, {type:"application/json"});
+  let ok = false;
+  try{
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"리컴프 로그북 백업"}); ok = true; }
+  }catch(e){ if(e && e.name==="AbortError") return; }
+  if(!ok){
+    const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = name;
+    document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+  }
+  S.lastBackup = new Date().toISOString().slice(0,10); lsSave(); backupNote();
+  if(S.tab==="progress") render();
+}
+function exportCSV(){
+  const rows = [["date","type","exercise","set","kg","reps","done","weight","protein","sleep","steps","bf","smm","waist"]];
+  Object.keys(S.days).sort().forEach(k=>{ const r=S.days[k]; const base=[r.weight,r.protein,r.sleep,r.steps,r.bf,r.smm,r.waist].map(v=>v??"");
+    let any=false;
+    Object.entries(r.ex||{}).forEach(([n,sets])=>sets.forEach((s,i)=>{ if(s && (s.w!=null||s.r!=null)){ any=true; rows.push([k,r.type||"",n,i+1,s.w??"",s.r??"",s.ok?1:0,...base]); } }));
+    if(!any) rows.push([k,r.type||"","","","","","",...base]); });
+  const csv = "\ufeff"+rows.map(r=>r.map(c=>/[",\n]/.test(String(c))?`"${String(c).replace(/"/g,'""')}"`:c).join(",")).join("\n");
+  const file = new File([csv], `recomp-${TODAY}.csv`, {type:"text/csv"});
+  if(navigator.canShare && navigator.canShare({files:[file]})){ navigator.share({files:[file]}).catch(()=>{}); return; }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(file); a.download=file.name; document.body.append(a); a.click(); a.remove();
+}
+function importData(file, msgEl){
+  const fr = new FileReader();
+  fr.onload = () => {
+    try{
+      const v = JSON.parse(fr.result);
+      if(!v || v.app!=="recomp-logbook" || typeof v.days!=="object") throw new Error("형식");
+      const n = Object.keys(v.days).length;
+      msgEl.replaceChildren(el(`<div class="verdict" style="--vc:var(--warn)"><span class="dot"></span><div><b>${n}일치 기록을 불러올까요?</b><p>지금 이 폰에 있는 기록은 백업 파일 내용으로 바뀌어요.</p><div class="quick" style="margin-top:8px"><button id="imp-yes">불러오기</button><button id="imp-no">취소</button></div></div></div>`));
+      msgEl.querySelector("#imp-yes").onclick = () => { S.days=v.days; S.state=v.state||{next:0}; lsSave(); render(); note("백업을 불러왔어요"); };
+      msgEl.querySelector("#imp-no").onclick = () => msgEl.replaceChildren();
+    }catch(e){ msgEl.replaceChildren(el(`<div class="banner">이 파일은 리컴프 로그북 백업이 아니에요. "백업 저장"으로 만든 .json 파일을 골라주세요.</div>`)); }
+  };
+  fr.readAsText(file);
+}
+function renderBackup(sec){
+  const lb = S.lastBackup;
+  const age = lb ? diffDays(lb, TODAY) : null;
+  sec.append(el(`<h2 style="margin-top:8px">백업</h2>`));
+  if(age==null || age>=30) sec.append(el(`<div class="banner"><b>${age==null?"아직 백업한 적이 없어요":"마지막 백업이 "+age+"일 전이에요"}</b> · 기록은 이 폰에만 있어서, 폰을 바꾸거나 브라우저 데이터를 지우면 사라져요. 인바디 재는 날 같이 백업하세요.</div>`));
+  const box = el(`<div class="field"><span class="lbl">기록 파일</span>
+    <div class="quick"><button id="bk-save">백업 저장 (.json)</button><button id="bk-csv">엑셀용 CSV</button><label for="bk-load" style="font:600 13px var(--mono);padding:7px 11px;border-radius:8px;border:1px solid var(--line);background:var(--sunk);cursor:pointer">백업 불러오기</label><input id="bk-load" type="file" accept="application/json,.json" hidden></div>
+    <span class="unit" style="font-size:12px">백업 파일은 카카오톡 나에게 보내기, 구글 드라이브, 파일 앱 등에 저장해두세요.</span><div id="bk-msg"></div></div>`);
+  box.querySelector("#bk-save").onclick = exportData;
+  box.querySelector("#bk-csv").onclick = exportCSV;
+  const inp = box.querySelector("#bk-load");
+  inp.onchange = () => { if(inp.files[0]) importData(inp.files[0], box.querySelector("#bk-msg")); inp.value=""; };
+  sec.append(box);
+}
+
+// ---------- render ----------
+let pendingRender=false;
+function render(){
+  const v = document.getElementById("view");
+  const y = window.scrollY;
+  v.replaceChildren();
+  header();
+  if(S.tab==="today") renderToday(v);
+  else if(S.tab==="body") renderBody(v);
+  else renderProgress(v);
+  window.scrollTo(0,y);
+}
+function softRender(){
+  const a = document.activeElement;
+  if(a && a.tagName==="INPUT"){ pendingRender=true; return; }
+  render();
+}
+document.addEventListener("focusout", () => { if(pendingRender){ pendingRender=false; setTimeout(()=>{ if(!(document.activeElement&&document.activeElement.tagName==="INPUT")) render(); },50);} });
+document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => {
+  S.tab = b.dataset.tab;
+  document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected", x===b));
+  try{ localStorage.setItem(LSK+"-tab", S.tab); }catch(e){}
+  render(); window.scrollTo(0,0);
+});
+try{ const t=localStorage.getItem(LSK+"-tab"); if(t){ S.tab=t; document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected", x.dataset.tab===t)); } }catch(e){}
+
+lsLoad();
+render();
+
+// ---------- offline + persistence ----------
+if("serviceWorker" in navigator){ window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{})); }
+if(navigator.storage && navigator.storage.persist){ navigator.storage.persist().catch(()=>{}); }
+backupNote();
+})();
+</script>
+
+</body>
+</html>
