@@ -391,9 +391,9 @@ function renderToday(v){
     sec.append(card);
   }
 
-  const walk = el(`<div class="row"><div><div class="t">스텝밀 20분</div><div class="s">${type==="legs"?"하체 날이라 레벨 낮춰서 편하게":"레벨 5~7 · 숨은 차도 대화는 되는 정도"} · 손잡이는 가볍게만</div></div><button class="toggle" id="walk" aria-label="스텝밀 완료" aria-pressed="${!!rec.walk}"></button></div>`);
+  const walk = el(`<div class="row"><div><div class="t">스텝밀 20분</div><div class="s">레벨 5~7 · 숨은 차도 대화는 되는 정도 · 손잡이는 가볍게만</div></div><button class="toggle" id="walk" aria-label="스텝밀 완료" aria-pressed="${!!rec.walk}"></button></div>`);
   walk.querySelector("button").onclick = (e) => { rec.walk=!rec.walk; e.currentTarget.setAttribute("aria-pressed",rec.walk); save(TODAY); };
-  if(type!=="rest") sec.append(walk);
+  if(type!=="rest" && type!=="legs") sec.append(walk);
 
   const btn = el(`<button class="btn" id="donebtn" style="--c:${T.c}"></button>`);
   function updateDoneBtn(){
