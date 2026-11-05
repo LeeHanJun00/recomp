@@ -104,6 +104,17 @@ section{display:flex;flex-direction:column;gap:12px;margin-top:18px}
 .motto{padding:14px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
 .motto q{font-family:var(--display);font-size:19px;line-height:1.4;quotes:none;text-wrap:balance}
 .motto small{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.restbar{position:fixed;left:0;right:0;bottom:calc(50px + env(safe-area-inset-bottom,0px));z-index:7;display:flex;justify-content:center;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));pointer-events:none}
+.restbar .in{pointer-events:auto;width:100%;max-width:536px;background:var(--fg);color:var(--bg);border-radius:14px;padding:10px 12px;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.restbar .tm{font:600 26px var(--mono);font-variant-numeric:tabular-nums;min-width:74px}
+.restbar .lb{font-size:12.5px;line-height:1.35;min-width:0;overflow:hidden}
+.restbar .lb b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.restbar button{font:700 13px var(--body);border:0;border-radius:8px;padding:9px 10px;background:color-mix(in srgb,var(--bg) 18%,transparent);color:var(--bg);cursor:pointer}
+.restbar .pg{grid-column:1 / -1;height:4px;border-radius:99px;background:color-mix(in srgb,var(--bg) 20%,transparent);overflow:hidden}
+.restbar .pg i{display:block;height:100%;background:var(--ok);width:0}
+.restbar.done .in{background:var(--ok);color:#fff}
+.restbar.done button{color:#fff}
+body.resting .wrap{padding-bottom:200px}
 .verdict{border-radius:12px;padding:12px;background:var(--surface);border:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
 .verdict .dot{width:12px;height:12px;border-radius:50%;margin-top:5px;flex:none;background:var(--vc)}
 .verdict p{margin:2px 0 0;color:var(--muted);font-size:13.5px}
@@ -385,6 +396,7 @@ function renderToday(v){
           if(s.r==null){ const n=parseInt(rIn.placeholder); if(!isNaN(n)){ s.r=n; rIn.value=n;} }
         }
         ck.setAttribute("aria-pressed", s.ok); save(TODAY); updateDoneBtn();
+        if(s.ok) startRest(name, i, sets); else stopRest();
       };
       grid.append(el(`<span class="sn">${i+1}</span>`), wIn, rIn, ck);
     }
@@ -675,6 +687,55 @@ async function renderNotify(sec){
   };
 }
 function renderNotify_retry(){ render(); }
+
+// ---------- rest timer ----------
+const REST = {복합:150, 중간:105, 고립:75};
+const CAT = {"덤벨 인클라인 벤치":"복합","스미스 벤치프레스":"복합","숄더 프레스 머신":"복합","펙덱 플라이":"고립","덤벨 사이드 레터럴 레이즈":"고립","케이블 푸쉬다운":"고립",
+  "랫풀다운 (와이드 그립)":"복합","어시스트 풀업":"복합","시티드 케이블 로우":"중간","리버스 펙덱 플라이":"고립","케이블 사이드 레터럴 레이즈":"고립","덤벨 컬":"고립",
+  "레그프레스":"복합","핵스쿼트 머신":"복합","시티드 레그컬":"중간","레그 익스텐션":"고립","힙 쓰러스트 머신":"중간","앱도미널 크런치 머신":"고립"};
+const RT = {end:0,total:0,iv:null,lock:null,ac:null};
+const rbar = el(`<div class="restbar" id="restbar" hidden><div class="in" role="timer" aria-live="off">
+  <span class="tm" id="rt-t">0:00</span><span class="lb"><b id="rt-l"></b><span id="rt-s"></span></span>
+  <button id="rt-plus" aria-label="휴식 30초 추가">+30초</button><button id="rt-skip">건너뛰기</button>
+  <div class="pg"><i id="rt-p"></i></div></div></div>`);
+document.body.append(rbar);
+const mmss = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+function beep(){
+  try{ const ac = RT.ac; if(!ac) return; const t0 = ac.currentTime;
+    [0,0.28,0.56].forEach((d,i)=>{ const o=ac.createOscillator(), g=ac.createGain(); o.frequency.value = i===2?1175:880; o.type="sine";
+      g.gain.setValueAtTime(0.0001,t0+d); g.gain.exponentialRampToValueAtTime(0.35,t0+d+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t0+d+0.22);
+      o.connect(g).connect(ac.destination); o.start(t0+d); o.stop(t0+d+0.25); });
+  }catch(e){}
+}
+function stopRest(){
+  clearInterval(RT.iv); RT.iv=null; RT.end=0; rbar.hidden=true; rbar.classList.remove("done"); document.body.classList.remove("resting");
+  try{ RT.lock && RT.lock.release(); }catch(e){} RT.lock=null;
+}
+function tickRest(){
+  const left = Math.max(0, Math.round((RT.end-Date.now())/1000));
+  rbar.querySelector("#rt-t").textContent = mmss(left);
+  rbar.querySelector("#rt-p").style.width = (100 - left/RT.total*100) + "%";
+  if(left<=0 && !rbar.classList.contains("done")){
+    rbar.classList.add("done"); rbar.querySelector("#rt-t").textContent = "GO";
+    rbar.querySelector("#rt-s").textContent = "휴식 끝 · 다음 세트 시작해요";
+    try{ navigator.vibrate && navigator.vibrate([300,120,300,120,500]); }catch(e){}
+    beep(); clearInterval(RT.iv); RT.iv=null;
+    setTimeout(()=>{ if(rbar.classList.contains("done")) stopRest(); }, 6000);
+  }
+}
+function startRest(name, setIdx, sets){
+  const cat = CAT[name] || "고립", sec = REST[cat];
+  try{ RT.ac = RT.ac || new (window.AudioContext||window.webkitAudioContext)(); RT.ac.resume && RT.ac.resume(); }catch(e){}
+  RT.total = sec; RT.end = Date.now()+sec*1000;
+  rbar.classList.remove("done"); rbar.hidden=false; document.body.classList.add("resting");
+  rbar.querySelector("#rt-l").textContent = setIdx+1 < sets ? `${name} · ${setIdx+2}세트 준비` : `${name} 끝 · 다음 운동으로`;
+  rbar.querySelector("#rt-s").textContent = `${cat} 운동 휴식 ${mmss(sec)}`;
+  clearInterval(RT.iv); RT.iv = setInterval(tickRest, 250); tickRest();
+  try{ if(navigator.wakeLock && !RT.lock) navigator.wakeLock.request("screen").then(l=>RT.lock=l).catch(()=>{}); }catch(e){}
+}
+rbar.querySelector("#rt-plus").onclick = () => { if(rbar.classList.contains("done")){ rbar.classList.remove("done"); RT.end=Date.now(); RT.total=30; } RT.end += 30000; RT.total += 30; if(!RT.iv) RT.iv=setInterval(tickRest,250); tickRest(); };
+rbar.querySelector("#rt-skip").onclick = stopRest;
+document.addEventListener("visibilitychange", () => { if(document.visibilityState==="visible" && RT.end) tickRest(); });
 
 // ---------- render ----------
 let pendingRender=false;
