@@ -115,6 +115,13 @@ section{display:flex;flex-direction:column;gap:12px;margin-top:18px}
 .restbar.done .in{background:var(--ok);color:#fff}
 .restbar.done button{color:#fff}
 body.resting .wrap{padding-bottom:200px}
+.rt-list{display:flex;flex-direction:column;gap:2px}
+.rt-item{display:grid;grid-template-columns:52px minmax(0,1fr) 30px;gap:8px;align-items:center;padding:9px 4px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--fg);font:inherit;text-align:left;cursor:pointer;width:100%}
+.rt-item:last-child{border-bottom:0}
+.rt-item .tm{font:600 13px var(--mono);color:var(--muted)}
+.rt-item .bx{width:26px;height:26px;border-radius:7px;border:1.5px solid var(--line);display:grid;place-items:center;color:transparent;font-size:15px}
+.rt-item[aria-pressed="true"] .bx{background:var(--ok);border-color:var(--ok);color:#fff}
+.rt-item[aria-pressed="true"] .nm{color:var(--muted);text-decoration:line-through}
 .verdict{border-radius:12px;padding:12px;background:var(--surface);border:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
 .verdict .dot{width:12px;height:12px;border-radius:50%;margin-top:5px;flex:none;background:var(--vc)}
 .verdict p{margin:2px 0 0;color:var(--muted);font-size:13.5px}
@@ -266,7 +273,7 @@ function header(){
 // ---------- TODAY ----------
 function latePopup(){
   if(document.getElementById("latepop")) return;
-  if(new Date().getHours() < 22 || day().bodyDone) return;
+  if(new Date().getHours() < 21 || day().bodyDone) return;
   try{ if(localStorage.getItem(LSK+"-popdismiss")===TODAY) return; }catch(e){}
   const m = el(`<div class="modal" id="latepop" role="dialog" aria-modal="true" aria-labelledby="lp-t"><div class="card">
     <div class="plate" style="--c:var(--ok);width:44px;height:44px;font-size:16px">밤</div>
@@ -282,7 +289,7 @@ function latePopup(){
 document.addEventListener("visibilitychange", () => { if(document.visibilityState==="visible") latePopup(); });
 setInterval(latePopup, 60000);
 function lateBanner(sec){
-  if(new Date().getHours() < 22 || day().bodyDone) return;
+  if(new Date().getHours() < 21 || day().bodyDone) return;
   const b = el(`<div class="banner" id="latebanner" style="border-left-color:var(--push)"><b>오늘 기록하셨나요?</b> 체중, 단백질, 소모 칼로리를 적고 '오늘 몸 상태 등록 완료'를 눌러주세요.${S.tab!=="body"?' <button class="chip" style="margin-top:8px;--c:var(--ok)" id="gobody">몸 기록으로 가기</button>':""}</div>`);
   const g = b.querySelector("#gobody"); if(g) g.onclick = () => document.getElementById("tab-body").click();
   sec.append(b);
@@ -428,11 +435,58 @@ function renderToday(v){
 }
 
 // ---------- BODY ----------
+// ---------- daily routine ----------
+function routineItems(d){
+  const dow = parse(d).getDay();
+  const items = [
+    ["wake","06:00","기상 + 공복 체중"],
+    ...(dow!==0 ? [["gym","06:10","운동"]] : []),
+    ["bf","07:50","아침 요거트 세트 + 계란 2개"],
+    ...(d >= addDays(START,14) && dow!==0 && dow!==6 ? [["career","08:20","출근길 커리어 시간"]] : []),
+    ["shake","15:30","쉐이크 한 잔"],
+    ["dinner","19:00","저녁 단백질 50g"],
+    ["noalc","하루","술 안 마시기"],
+    ["log","21:00","몸 기록 + 가방 챙기기"],
+    ["read","22:00","독서 20분 (폰 대신 책)"],
+    ["sleep","22:30","불 끄고 취침"]
+  ];
+  return items;
+}
+function routineScore(d){ const r=(S.days[d]||{}).routine||{}; const it=routineItems(d); return {n:it.filter(x=>r[x[0]]).length, total:it.length}; }
+function routineOk(d){ const {n,total}=routineScore(d); return n >= Math.ceil(total*0.7); }
+function routineStreak(){
+  let k=0, d = routineOk(TODAY) ? TODAY : addDays(TODAY,-1);
+  while(k < 400 && routineOk(d)){ k++; d = addDays(d,-1); }
+  return k;
+}
+function renderRoutine(sec){
+  const rec = day(); rec.routine = rec.routine || {};
+  const box = el(`<div class="field"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span class="lbl" style="text-transform:none">오늘의 루틴</span><span class="num" id="rt-cnt" style="font-size:13px;color:var(--muted)"></span></div>
+    <div class="bar"><b id="rt-bar"></b></div><div class="rt-list"></div><span class="unit" id="rt-streak" style="font-size:12.5px"></span></div>`);
+  const list = box.querySelector(".rt-list");
+  const paint = () => {
+    const {n,total} = routineScore(TODAY), need = Math.ceil(total*0.7);
+    box.querySelector("#rt-cnt").textContent = `${n} / ${total}`;
+    box.querySelector("#rt-bar").style.width = (n/total*100)+"%";
+    box.querySelector("#rt-bar").style.background = n>=need ? "var(--ok)" : "var(--warn)";
+    const st = routineStreak();
+    box.querySelector("#rt-streak").textContent = n>=need ? `오늘은 통제한 날이에요 · 루틴 ${st}일 연속` : `${need}개 이상 지키면 통제한 날 · ${st>0?`지금 ${st}일 연속`:"오늘부터 연속 기록 시작"}`;
+  };
+  routineItems(TODAY).forEach(([k,t,nm]) => {
+    const b = el(`<button class="rt-item" aria-pressed="${!!rec.routine[k]}"><span class="tm">${t}</span><span class="nm">${nm}</span><span class="bx">✓</span></button>`);
+    b.onclick = () => { rec.routine[k] = !rec.routine[k]; b.setAttribute("aria-pressed", rec.routine[k]); save(TODAY); paint(); };
+    list.append(b);
+  });
+  paint();
+  sec.append(box);
+}
+
 function renderBody(v){
   const rec = day();
   const sec = el(`<section></section>`);
   lateBanner(sec);
-  sec.append(el(`<h2>오늘 몸 기록</h2>`));
+  renderRoutine(sec);
+  sec.append(el(`<h2 style="margin-top:8px">오늘 몸 기록</h2>`));
   const g = el(`<div class="grid2"></div>`);
   const mk = (key,label,unit,ph,mode="decimal") => {
     const f = el(`<label class="field" for="f-${key}"><span class="lbl">${label}</span><span class="in"><input id="f-${key}" inputmode="${mode}" placeholder="${ph}" value="${rec[key]??""}"><span class="unit">${unit}</span></span></label>`);
@@ -478,7 +532,7 @@ function renderBody(v){
   doneB.onclick = () => { rec.bodyDone = !rec.bodyDone; save(TODAY); writeStatus(); paintDoneB(); const lb=document.getElementById("latebanner"); if(lb) lb.hidden = !!rec.bodyDone; };
   paintDoneB();
   sec.append(doneB);
-  if(rec.bodyDone) sec.append(el(`<p style="margin:0;text-align:center;font-size:13px;color:var(--muted)">오늘 기록 끝. 오늘 밤 10시 알림은 조용히 지나가요.</p>`));
+  if(rec.bodyDone) sec.append(el(`<p style="margin:0;text-align:center;font-size:13px;color:var(--muted)">오늘 기록 끝. 오늘 밤 9시 알림은 조용히 지나가요.</p>`));
 
   sec.append(el(`<h2 style="margin-top:8px">이번 주 판정</h2>`));
   const vb = el(`<div id="verdict"></div>`); sec.append(vb);
@@ -657,7 +711,7 @@ function renderBackup(sec){
 const VAPID_PUBLIC = "BLVGyjcStFEaJhKdxQoI0StMtljtBy33G6RDBsw53F-YvrUa46wFRJ0dxnOQ267mvw5r_MoAFpvPAPAZMokWTUs";
 function b64u(s){ const p="=".repeat((4-s.length%4)%4); const r=atob((s+p).replace(/-/g,"+").replace(/_/g,"/")); return Uint8Array.from(r,c=>c.charCodeAt(0)); }
 async function renderNotify(sec){
-  sec.append(el(`<h2 style="margin-top:8px">밤 10시 알림</h2>`));
+  sec.append(el(`<h2 style="margin-top:8px">밤 9시 알림</h2>`));
   const box = el(`<div class="field"><span class="lbl">알림</span><div id="nt-body" style="display:flex;flex-direction:column;gap:8px"></div></div>`);
   sec.append(box);
   const body = box.querySelector("#nt-body");
@@ -670,15 +724,15 @@ async function renderNotify(sec){
   let sub = await reg.pushManager.getSubscription();
   const showSub = (sub) => {
     const code = JSON.stringify(sub);
-    say(`<span class="unit" style="font-size:13px">알림이 켜졌어요. 아래 코드를 복사해서 GitHub 저장소의 PUSH_SUBSCRIPTION 시크릿에 넣으면 매일 밤 10시 알림이 시작돼요.</span>
+    say(`<span class="unit" style="font-size:13px">알림이 켜졌어요. 아래 코드를 복사해서 GitHub 저장소의 PUSH_SUBSCRIPTION 시크릿에 넣으면 매일 밤 9시 알림이 시작돼요.</span>
       <textarea id="nt-code" readonly rows="3" style="width:100%;font:12px var(--mono);border:1px solid var(--line);border-radius:8px;background:var(--sunk);color:var(--fg);padding:8px;resize:none"></textarea>
       <div class="quick"><button id="nt-copy">코드 복사</button><button id="nt-test">알림 테스트</button></div><span class="unit" id="nt-msg" style="font-size:12px"></span>`);
     const ta = body.querySelector("#nt-code"); ta.value = code;
     body.querySelector("#nt-copy").onclick = async () => { try{ await navigator.clipboard.writeText(code); body.querySelector("#nt-msg").textContent="복사했어요."; }catch(e){ ta.select(); body.querySelector("#nt-msg").textContent="길게 눌러 복사해주세요."; } };
-    body.querySelector("#nt-test").onclick = () => reg.showNotification("오늘 기록하셨나요?", {body:"알림 테스트예요. 밤 10시에는 이렇게 와요.", icon:"icon-192.png", badge:"icon-192.png", tag:"test"});
+    body.querySelector("#nt-test").onclick = () => reg.showNotification("오늘 기록하셨나요?", {body:"알림 테스트예요. 밤 9시에는 이렇게 와요.", icon:"icon-192.png", badge:"icon-192.png", tag:"test"});
   };
   if(sub && Notification.permission==="granted"){ showSub(sub); return; }
-  say(`<span class="unit" style="font-size:13px">매일 밤 10시에 "오늘 기록하셨나요?" 알림을 받아요. 그날 '몸 상태 등록 완료'를 눌렀으면 조용한 확인 알림만 와요.</span><button class="btn" id="nt-on" style="--c:var(--pull)">알림 켜기</button>`);
+  say(`<span class="unit" style="font-size:13px">매일 밤 9시에 "오늘 기록하셨나요?" 알림을 받아요. 그날 '몸 상태 등록 완료'를 눌렀으면 조용한 확인 알림만 와요.</span><button class="btn" id="nt-on" style="--c:var(--pull)">알림 켜기</button>`);
   body.querySelector("#nt-on").onclick = async () => {
     const perm = await Notification.requestPermission();
     if(perm!=="granted"){ renderNotify_retry(sec); return; }
