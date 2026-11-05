@@ -812,7 +812,7 @@ document.addEventListener("visibilitychange", () => { if(document.visibilityStat
 
 // ---------- rewards ----------
 const MILESTONES = [3,7,14,30,60,90,180];
-const DEFAULT_REWARDS = {3:"좋아하는 디저트 하나",7:"먹고 싶던 메뉴로 한 끼",14:"가보고 싶던 맛집 한 끼",30:"한우 구이 한 끼",60:"스테이크 레스토랑 코스",90:"오마카세 한 끼",180:"제일 먹고 싶은 것 아무거나, 한 끼 통째로"};
+const DEFAULT_REWARDS = {3:"좋아하는 디저트 하나",7:"치킨 한 마리",14:"가보고 싶던 맛집 한 끼",30:"한우 구이 한 끼",60:"치킨 + 먹고 싶은 사이드 전부",90:"오마카세 한 끼",180:"제일 좋아하는 치킨집에서 마음껏"};
 function rewards(){ S.state.rewards = S.state.rewards || {}; S.state.unlocked = S.state.unlocked || {}; return S.state; }
 function points(){
   let p=0, perfect=0;
