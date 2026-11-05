@@ -1,0 +1,51 @@
+name: 밤 10시 기록 알림
+
+on:
+  schedule:
+    - cron: "47 12 * * *"   # 매일 21:47 KST에 시작 (GitHub 예약 실행은 몇 분~십여 분 늦게 도는 경우가 많아요)
+  workflow_dispatch: {}      # Actions 탭에서 수동으로 테스트 발송
+
+permissions:
+  contents: write
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 10시까지 기다리기
+        if: github.event_name == 'schedule'
+        run: |
+          now=$(TZ=Asia/Seoul date +%s)
+          target=$(TZ=Asia/Seoul date -d "22:00" +%s)
+          wait=$(( target - now ))
+          if [ $wait -gt 0 ] && [ $wait -lt 1800 ]; then echo "${wait}초 대기"; sleep $wait; fi
+
+      - name: 알림 보내기
+        env:
+          SUB: ${{ secrets.PUSH_SUBSCRIPTION }}
+          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE_KEY }}
+        run: |
+          if [ -z "$SUB" ] || [ -z "$VAPID_PRIVATE" ]; then echo "PUSH_SUBSCRIPTION 또는 VAPID_PRIVATE_KEY 시크릿이 없어서 건너뜀"; exit 0; fi
+          npx --yes web-push@3.6.7 send-notification \
+            --endpoint="$(jq -r .endpoint <<<"$SUB")" \
+            --key="$(jq -r .keys.p256dh <<<"$SUB")" \
+            --auth="$(jq -r .keys.auth <<<"$SUB")" \
+            --vapid-subject="https://leehanjun00.github.io/recomp/" \
+            --vapid-pubkey="BLVGyjcStFEaJhKdxQoI0StMtljtBy33G6RDBsw53F-YvrUa46wFRJ0dxnOQ267mvw5r_MoAFpvPAPAZMokWTUs" \
+            --vapid-pvtkey="$VAPID_PRIVATE" \
+            --ttl=3600 \
+            --payload='{"title":"오늘 기록하셨나요?","body":"체중, 단백질, 소모 칼로리를 적고 오늘 몸 상태 등록 완료를 눌러주세요."}'
+
+      # 공개 저장소는 60일 동안 커밋이 없으면 예약 실행이 멈춰요. 50일마다 빈 커밋으로 깨워둡니다.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: 예약 실행 유지
+        run: |
+          last=$(git log -1 --format=%ct)
+          if [ $(( $(date +%s) - last )) -gt $(( 50*24*3600 )) ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "keepalive: 예약 알림 유지"
+            git push
+          fi

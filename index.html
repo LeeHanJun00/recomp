@@ -245,12 +245,23 @@ function header(){
 }
 
 // ---------- TODAY ----------
+function lateBanner(sec){
+  if(new Date().getHours() < 22 || day().bodyDone) return;
+  const b = el(`<div class="banner" id="latebanner" style="border-left-color:var(--push)"><b>오늘 기록하셨나요?</b> 체중, 단백질, 소모 칼로리를 적고 '오늘 몸 상태 등록 완료'를 눌러주세요.${S.tab!=="body"?' <button class="chip" style="margin-top:8px;--c:var(--ok)" id="gobody">몸 기록으로 가기</button>':""}</div>`);
+  const g = b.querySelector("#gobody"); if(g) g.onclick = () => document.getElementById("tab-body").click();
+  sec.append(b);
+}
+async function writeStatus(){
+  try{ const c = await caches.open("recomp-status");
+    await c.put("./__status", new Response(JSON.stringify({bodyDone: day().bodyDone ? TODAY : null}), {headers:{"content-type":"application/json"}})); }catch(e){}
+}
 function renderToday(v){
   const rec = day();
   const type = typeFor(TODAY);
   const T = TYPES[type];
   const w = weekNo(TODAY), ph = phaseOf(w);
   const sec = el(`<section></section>`);
+  lateBanner(sec);
   if(DELOAD.includes(w)) sec.append(el(`<div class="banner"><b>디로드 주간</b> · 이번 주는 평소 무게의 60%로 가볍게 해요. 쉬는 게 아니라 다시 성장하기 위한 주간이에요.</div>`));
   else sec.append(el(`<div class="banner" style="border-left-color:var(--ok)"><b>${ph.name}</b> · ${ph.tip}</div>`));
 
@@ -328,6 +339,7 @@ function renderToday(v){
 function renderBody(v){
   const rec = day();
   const sec = el(`<section></section>`);
+  lateBanner(sec);
   sec.append(el(`<h2>오늘 몸 기록</h2>`));
   const g = el(`<div class="grid2"></div>`);
   const mk = (key,label,unit,ph,mode="decimal") => {
@@ -368,6 +380,13 @@ function renderBody(v){
   sec.append(dg);
   function paintRemain(){ const r = PROTEIN-(rec.protein||0); const e=dg.querySelector("#remain"); e.textContent = r>0 ? `오늘 남은 단백질 ${r}g` : "오늘 목표 달성"; e.style.color = r>0?"var(--muted)":"var(--ok)"; }
   paintRemain();
+
+  const doneB = el(`<button class="btn" id="bodydone" style="--c:var(--ok)"></button>`);
+  const paintDoneB = () => { doneB.textContent = rec.bodyDone ? "오늘 몸 상태 등록 완료됨 · 다시 열기" : "오늘 몸 상태 등록 완료"; doneB.className = rec.bodyDone ? "btn ghost" : "btn"; };
+  doneB.onclick = () => { rec.bodyDone = !rec.bodyDone; save(TODAY); writeStatus(); paintDoneB(); const lb=document.getElementById("latebanner"); if(lb) lb.hidden = !!rec.bodyDone; };
+  paintDoneB();
+  sec.append(doneB);
+  if(rec.bodyDone) sec.append(el(`<p style="margin:0;text-align:center;font-size:13px;color:var(--muted)">오늘 기록 끝. 오늘 밤 10시 알림은 조용히 지나가요.</p>`));
 
   sec.append(el(`<h2 style="margin-top:8px">이번 주 판정</h2>`));
   const vb = el(`<div id="verdict"></div>`); sec.append(vb);
@@ -439,6 +458,7 @@ function renderProgress(v){
   ["bf","smm","waist"].forEach(k=>{ const i=f.querySelector("#m-"+k); i.oninput=()=>{ const n=parseFloat(i.value); rec[k]=isNaN(n)?null:n; save(TODAY); }; i.onchange=()=>render(); });
   sec.append(f);
   renderBackup(sec);
+  renderNotify(sec);
   v.append(sec);
 }
 function chart(pts){
@@ -494,6 +514,7 @@ async function exportData(){
     document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
   }
   S.lastBackup = new Date().toISOString().slice(0,10); lsSave(); backupNote();
+writeStatus();
   if(S.tab==="progress") render();
 }
 function exportCSV(){
@@ -536,6 +557,41 @@ function renderBackup(sec){
   sec.append(box);
 }
 
+// ---------- 10pm reminder ----------
+const VAPID_PUBLIC = "BLVGyjcStFEaJhKdxQoI0StMtljtBy33G6RDBsw53F-YvrUa46wFRJ0dxnOQ267mvw5r_MoAFpvPAPAZMokWTUs";
+function b64u(s){ const p="=".repeat((4-s.length%4)%4); const r=atob((s+p).replace(/-/g,"+").replace(/_/g,"/")); return Uint8Array.from(r,c=>c.charCodeAt(0)); }
+async function renderNotify(sec){
+  sec.append(el(`<h2 style="margin-top:8px">밤 10시 알림</h2>`));
+  const box = el(`<div class="field"><span class="lbl">알림</span><div id="nt-body" style="display:flex;flex-direction:column;gap:8px"></div></div>`);
+  sec.append(box);
+  const body = box.querySelector("#nt-body");
+  const say = h => body.replaceChildren(...[...el(`<div>${h}</div>`).childNodes]);
+  if(!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)){
+    say(`<span class="unit">이 브라우저는 알림을 지원하지 않아요. 홈 화면에 설치한 앱에서 열어주세요.</span>`); return; }
+  if(Notification.permission==="denied"){
+    say(`<span class="unit">알림이 차단돼 있어요. 폰 설정 → 애플리케이션 → 리컴프(또는 Chrome) → 알림에서 허용해주세요.</span>`); return; }
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  const showSub = (sub) => {
+    const code = JSON.stringify(sub);
+    say(`<span class="unit" style="font-size:13px">알림이 켜졌어요. 아래 코드를 복사해서 Claude에게 보내주면 매일 밤 10시 알림이 시작돼요.</span>
+      <textarea id="nt-code" readonly rows="3" style="width:100%;font:12px var(--mono);border:1px solid var(--line);border-radius:8px;background:var(--sunk);color:var(--fg);padding:8px;resize:none"></textarea>
+      <div class="quick"><button id="nt-copy">코드 복사</button><button id="nt-test">알림 테스트</button></div><span class="unit" id="nt-msg" style="font-size:12px"></span>`);
+    const ta = body.querySelector("#nt-code"); ta.value = code;
+    body.querySelector("#nt-copy").onclick = async () => { try{ await navigator.clipboard.writeText(code); body.querySelector("#nt-msg").textContent="복사했어요."; }catch(e){ ta.select(); body.querySelector("#nt-msg").textContent="길게 눌러 복사해주세요."; } };
+    body.querySelector("#nt-test").onclick = () => reg.showNotification("오늘 기록하셨나요?", {body:"알림 테스트예요. 밤 10시에는 이렇게 와요.", icon:"icon-192.png", badge:"icon-192.png", tag:"test"});
+  };
+  if(sub && Notification.permission==="granted"){ showSub(sub); return; }
+  say(`<span class="unit" style="font-size:13px">매일 밤 10시에 "오늘 기록하셨나요?" 알림을 받아요. 그날 '몸 상태 등록 완료'를 눌렀으면 조용한 확인 알림만 와요.</span><button class="btn" id="nt-on" style="--c:var(--pull)">알림 켜기</button>`);
+  body.querySelector("#nt-on").onclick = async () => {
+    const perm = await Notification.requestPermission();
+    if(perm!=="granted"){ renderNotify_retry(sec); return; }
+    try{ sub = await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64u(VAPID_PUBLIC)}); showSub(sub); }
+    catch(e){ say(`<span class="unit">알림 등록에 실패했어요. 앱을 껐다 켠 뒤 다시 눌러주세요.</span>`); }
+  };
+}
+function renderNotify_retry(){ render(); }
+
 // ---------- render ----------
 let pendingRender=false;
 function render(){
@@ -560,6 +616,7 @@ document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => {
   try{ localStorage.setItem(LSK+"-tab", S.tab); }catch(e){}
   render(); window.scrollTo(0,0);
 });
+try{ const h=location.hash.slice(1); if(["today","body","progress"].includes(h)){ localStorage.setItem(LSK+"-tab",h); history.replaceState(null,"",location.pathname); } }catch(e){}
 try{ const t=localStorage.getItem(LSK+"-tab"); if(t){ S.tab=t; document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected", x.dataset.tab===t)); } }catch(e){}
 
 lsLoad();
