@@ -165,8 +165,8 @@ const TYPES = {
     ["랫풀다운 (와이드 그립)",4,"8~10"],["어시스트 풀업",3,"8~10"],["시티드 케이블 로우",3,"10~12"],
     ["리버스 펙덱 플라이",3,"12~15"],["케이블 사이드 레터럴 레이즈",3,"12~15"],["덤벨 컬",3,"10~12"]]},
   legs:{name:"하체", sub:"하체 · 복근", c:"var(--legs)", ex:[
-    ["레그프레스",4,"10~12"],["핵스쿼트 머신",3,"8~10"],["시티드 레그컬",3,"10~12"],
-    ["레그 익스텐션",3,"12~15"],["힙 쓰러스트 머신",3,"10~12"],["앱도미널 크런치 머신",3,"12~15"]]},
+    ["레그프레스",4,"10~12"],["핵스쿼트 머신",3,"8~10","없으면 스미스 스쿼트"],["시티드 레그컬",3,"10~12","없으면 라잉 레그컬"],
+    ["레그 익스텐션",3,"12~15"],["힙 쓰러스트 머신",3,"10~12","없으면 스미스 힙 쓰러스트"],["앱도미널 크런치 머신",3,"12~15","없으면 케이블 크런치"]]},
   rest:{name:"휴식", sub:"완전 휴식 · 걷기만", c:"var(--rest)", ex:[]}
 };
 const PHASES = [
@@ -359,12 +359,12 @@ function renderToday(v){
     sec.append(el(`<div class="row"><div><div class="t">오늘은 쉬는 날</div><div class="s">근육은 쉬는 동안 자라요. 걷기 8,000보 정도면 충분해요.</div></div></div>`));
   }
   rec.ex = rec.ex || {};
-  for(const [name,sets,range] of T.ex){
+  for(const [name,sets,range,alt] of T.ex){
     const last = lastSession(type,name,TODAY);
     const cur = rec.ex[name] = rec.ex[name] || [];
     const hitTop = last && last.sets.length>=sets && last.sets.slice(0,sets).every(s=>s && s.r>=topRep(range));
     const card = el(`<div class="ex" style="--c:${T.c}">
-      <div class="ex-top"><div class="ex-name">${name}</div><div class="target">${sets} × ${range}</div></div>
+      <div class="ex-top"><div class="ex-name">${name}${alt?`<span style="display:block;font-weight:500;font-size:12px;color:var(--muted)">${alt}</span>`:""}</div><div class="target">${sets} × ${range}</div></div>
       <div class="last">${last ? "지난번 "+last.sets.filter(s=>s&&s.w!=null).map(s=>`${fmt(s.w)}×${s.r}`).join(", ") : "첫 기록이에요 · 가벼운 무게로 자세부터"}${hitTop?'<span class="up">↑ 무게 올릴 때</span>':""}</div>
       <div class="sets"><span class="h">SET</span><span class="h">KG</span><span class="h">REPS</span><span></span></div>
     </div>`);
