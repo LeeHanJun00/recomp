@@ -812,7 +812,7 @@ document.addEventListener("visibilitychange", () => { if(document.visibilityStat
 
 // ---------- rewards ----------
 const MILESTONES = [3,7,14,30,60,90,180];
-const DEFAULT_REWARDS = {3:"보고 싶던 영화 한 편 보기",7:"읽고 싶던 책 한 권 사기",14:"새 운동복 한 벌",30:"러닝화 또는 헬스 장갑",60:"갖고 싶던 물건 하나 (5만 원 이내)",90:"하루 여행 다녀오기",180:"바뀐 몸에 맞는 옷 새로 맞추기"};
+const DEFAULT_REWARDS = {3:"좋아하는 디저트 하나",7:"먹고 싶던 메뉴로 한 끼",14:"가보고 싶던 맛집 한 끼",30:"한우 구이 한 끼",60:"스테이크 레스토랑 코스",90:"오마카세 한 끼",180:"제일 먹고 싶은 것 아무거나, 한 끼 통째로"};
 function rewards(){ S.state.rewards = S.state.rewards || {}; S.state.unlocked = S.state.unlocked || {}; return S.state; }
 function points(){
   let p=0, perfect=0;
@@ -856,7 +856,7 @@ function renderRewards(sec){
   sec.append(top);
   if(next) sec.append(el(`<div class="field"><div style="display:flex;justify-content:space-between;gap:8px"><span class="lbl" style="text-transform:none">다음 보상까지</span><span class="num" style="font-size:13px;color:var(--muted)">${st} / ${next}일</span></div><div class="bar"><b style="width:${Math.min(100,st/next*100)}%"></b></div><span class="unit" style="font-size:12.5px"></span></div>`));
   if(next) sec.lastChild.querySelector(".unit").textContent = `${next}일 연속이면: ${R.rewards[next]||DEFAULT_REWARDS[next]}`;
-  const list = el(`<div class="field"><span class="lbl" style="text-transform:none">보상 목록 · 누르면 내 보상으로 바꿀 수 있어요</span><div class="rws"></div><span class="unit" style="font-size:12px">완벽한 날 ${perfect}일 · 체크 1개 10P, 루틴 전부 +30P, 운동 완료 +20P. 음식이나 술은 보상으로 정하지 않기로 해요.</span></div>`);
+  const list = el(`<div class="field"><span class="lbl" style="text-transform:none">보상 목록 · 누르면 내 보상으로 바꿀 수 있어요</span><div class="rws"></div><span class="unit" style="font-size:12px">완벽한 날 ${perfect}일 · 체크 1개 10P, 루틴 전부 +30P, 운동 완료 +20P. 보상 식사는 그 주의 자유 한 끼로 쓰고, 술은 빼기로 해요.</span></div>`);
   const wrap = list.querySelector(".rws");
   MILESTONES.forEach(ms=>{
     const got = R.unlocked[ms];
