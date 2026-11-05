@@ -344,7 +344,7 @@ function renderBody(v){
   const addP = n => { rec.protein = Math.max(0,(rec.protein||0)+n); save(TODAY);
     pf.querySelector("#pv").innerHTML = `<b style="font-size:22px">${rec.protein}</b> / ${PROTEIN} g`;
     pf.querySelector("#pb").style.width = Math.min(100,rec.protein/PROTEIN*100)+"%"; };
-  [["아침 세트 +25",25],["점심 일반식 +35",35],["쉐이크 한잔 +25",25],["저녁 +50",50],["자기 전 +12",12],["+10",10],["−10",-10]].forEach(([t,n])=>{
+  [["아침 세트 +37",37],["점심 일반식 +35",35],["쉐이크 한잔 +25",25],["저녁 +50",50],["자기 전 +12",12],["+10",10],["−10",-10]].forEach(([t,n])=>{
     const b=el(`<button>${t}</button>`); b.onclick=()=>addP(n); q.append(b); });
   sec.append(pf);
 
