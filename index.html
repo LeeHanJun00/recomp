@@ -811,9 +811,10 @@ rbar.querySelector("#rt-skip").onclick = stopRest;
 document.addEventListener("visibilitychange", () => { if(document.visibilityState==="visible" && RT.end) tickRest(); });
 
 // ---------- rewards ----------
-const MILESTONES = [3,7,14,30,60,90,180];
-const DEFAULT_REWARDS = {3:"좋아하는 디저트 하나",7:"치킨 한 마리",14:"가보고 싶던 맛집 한 끼",30:"한우 구이 한 끼",60:"치킨 + 먹고 싶은 사이드 전부",90:"오마카세 한 끼",180:"제일 좋아하는 치킨집에서 마음껏"};
-function rewards(){ S.state.rewards = S.state.rewards || {}; S.state.unlocked = S.state.unlocked || {}; return S.state; }
+const CHICKEN_EVERY = 20;
+function rewards(){ S.state.chickens = S.state.chickens || []; S.state.chickenShown = S.state.chickenShown || 0; return S.state; }
+function controlledDays(){ return Object.keys(S.days).filter(k=>routineOk(k)).length; }
+function chickenStatus(){ const R=rewards(); const tot=controlledDays(); const earned=Math.floor(tot/CHICKEN_EVERY); return {tot, earned, avail: Math.max(0, earned-R.chickens.length), prog: tot % CHICKEN_EVERY}; }
 function points(){
   let p=0, perfect=0;
   for(const k of Object.keys(S.days)){
@@ -838,40 +839,27 @@ function celebrate(big, text, sub){
   try{ navigator.vibrate && navigator.vibrate([80,60,80]); }catch(e){}
 }
 function checkRewards(){
-  const st = routineStreak(), R = rewards();
-  for(const ms of MILESTONES){
-    if(st>=ms && !R.unlocked[ms]){
-      R.unlocked[ms]=TODAY; saveState();
-      celebrate(`${ms}일 연속 달성`, `보상: ${R.rewards[ms]||DEFAULT_REWARDS[ms]}`, "스스로 정한 보상이에요. 꼭 챙겨주세요.");
-      return true;
-    }
-  }
+  const R=rewards(), c=chickenStatus();
+  if(c.earned > R.chickenShown){ R.chickenShown=c.earned; saveState();
+    celebrate("치킨 획득", `통제한 날 ${c.tot}일. 치킨 한 마리 먹을 자격이 생겼어요.`, "이번 주 자유 한 끼로 먹고, 술은 빼고, 다음 날은 원래 식단으로."); return true; }
   return false;
 }
 function renderRewards(sec){
-  const R = rewards(); const st = routineStreak(); const {p,perfect} = points();
-  const next = MILESTONES.find(m=>!R.unlocked[m] && m>st) || MILESTONES.find(m=>!R.unlocked[m]);
-  sec.append(el(`<h2>보상</h2>`));
-  const top = el(`<div class="grid2"><div class="field"><span class="lbl" style="text-transform:none">루틴 연속</span><span class="num" style="font-size:26px;font-weight:600">${st}<span class="unit"> 일</span></span></div><div class="field"><span class="lbl" style="text-transform:none">포인트</span><span class="num" style="font-size:26px;font-weight:600">${p.toLocaleString()}<span class="unit"> P</span></span></div></div>`);
-  sec.append(top);
-  if(next) sec.append(el(`<div class="field"><div style="display:flex;justify-content:space-between;gap:8px"><span class="lbl" style="text-transform:none">다음 보상까지</span><span class="num" style="font-size:13px;color:var(--muted)">${st} / ${next}일</span></div><div class="bar"><b style="width:${Math.min(100,st/next*100)}%"></b></div><span class="unit" style="font-size:12.5px"></span></div>`));
-  if(next) sec.lastChild.querySelector(".unit").textContent = `${next}일 연속이면: ${R.rewards[next]||DEFAULT_REWARDS[next]}`;
-  const list = el(`<div class="field"><span class="lbl" style="text-transform:none">보상 목록 · 누르면 내 보상으로 바꿀 수 있어요</span><div class="rws"></div><span class="unit" style="font-size:12px">완벽한 날 ${perfect}일 · 체크 1개 10P, 루틴 전부 +30P, 운동 완료 +20P. 보상 식사는 그 주의 자유 한 끼로 쓰고, 술은 빼기로 해요.</span></div>`);
-  const wrap = list.querySelector(".rws");
-  MILESTONES.forEach(ms=>{
-    const got = R.unlocked[ms];
-    const row = el(`<div class="rw ${got?"got":""}"><span class="d">${ms}일</span><span class="t"><b></b><span>${got?`${parse(got).getMonth()+1}/${parse(got).getDate()} 달성`:"루틴 연속 "+ms+"일"}</span></span><button aria-label="${ms}일 보상 바꾸기">수정</button></div>`);
-    row.querySelector("b").textContent = R.rewards[ms]||DEFAULT_REWARDS[ms];
-    row.querySelector("button").onclick = () => {
-      const t=row.querySelector(".t"); const inp=el(`<input id="rw-${ms}" maxlength="40">`); inp.value=R.rewards[ms]||DEFAULT_REWARDS[ms];
-      t.replaceChildren(inp); inp.focus();
-      const btn=row.querySelector("button"); btn.textContent="저장";
-      btn.onclick=()=>{ const v=inp.value.trim(); if(v) R.rewards[ms]=v; else delete R.rewards[ms]; saveState(); render(); };
-      inp.onkeydown=e=>{ if(e.key==="Enter") btn.onclick(); };
-    };
-    wrap.append(row);
-  });
-  sec.append(list);
+  const R=rewards(), c=chickenStatus(), st=routineStreak(), {p}=points();
+  sec.append(el(`<h2>보상 · 치킨</h2>`));
+  const card = el(`<div class="field"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span class="lbl" style="text-transform:none">다음 치킨까지</span><span class="num" style="font-size:13px;color:var(--muted)">${c.prog} / ${CHICKEN_EVERY}일</span></div>
+    <div class="bar" style="height:14px"><b style="width:${c.prog/CHICKEN_EVERY*100}%;background:var(--legs)"></b></div>
+    <span class="unit" style="font-size:12.5px">통제한 날(루틴 70% 이상)이 ${CHICKEN_EVERY}일 쌓일 때마다 치킨 한 마리. 연속이 아니어도 돼요. 꾸준히 하면 한 달에 한 번쯤이에요.</span>
+    <div id="ck-avail"></div></div>`);
+  const av = card.querySelector("#ck-avail");
+  if(c.avail>0){
+    const b = el(`<div class="verdict" style="--vc:var(--legs);margin-top:6px"><span class="dot"></span><div><b>먹을 수 있는 치킨 ${c.avail}마리</b><p>그 주 자유 한 끼로 · 술 빼고 · 다음 날은 원래 식단</p><div class="quick" style="margin-top:8px"><button id="ck-eat">치킨 먹었어요</button></div></div></div>`);
+    b.querySelector("#ck-eat").onclick = () => { R.chickens.push(TODAY); saveState(); render(); };
+    av.append(b);
+  }
+  sec.append(card);
+  sec.append(el(`<div class="grid2"><div class="field"><span class="lbl" style="text-transform:none">통제한 날</span><span class="num" style="font-size:24px;font-weight:600">${c.tot}<span class="unit"> 일</span></span></div><div class="field"><span class="lbl" style="text-transform:none">루틴 연속 · 포인트</span><span class="num" style="font-size:24px;font-weight:600">${st}<span class="unit"> 일 · ${p.toLocaleString()}P</span></span></div></div>`));
+  if(R.chickens.length) sec.append(el(`<p style="margin:0;font-size:12.5px;color:var(--muted)">먹은 치킨: ${R.chickens.map(d=>{const x=parse(d);return `${x.getMonth()+1}/${x.getDate()}`}).join(", ")}</p>`));
 }
 
 // ---------- render ----------
