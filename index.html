@@ -122,6 +122,20 @@ body.resting .wrap{padding-bottom:200px}
 .rt-item .bx{width:26px;height:26px;border-radius:7px;border:1.5px solid var(--line);display:grid;place-items:center;color:transparent;font-size:15px}
 .rt-item[aria-pressed="true"] .bx{background:var(--ok);border-color:var(--ok);color:#fff}
 .rt-item[aria-pressed="true"] .nm{color:var(--muted);text-decoration:line-through}
+.cele{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:color-mix(in srgb,#000 50%,transparent);padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.cele canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.cele .card{position:relative;background:var(--surface);color:var(--fg);border-radius:18px;padding:24px 20px 16px;max-width:360px;width:100%;display:flex;flex-direction:column;gap:10px;text-align:center}
+.cele .big{font-family:var(--display);font-size:30px;line-height:1.2}
+.cele p{margin:0;color:var(--muted);font-size:14px}
+.rw{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line)}
+.rw:last-child{border-bottom:0}
+.rw .d{font:600 13px var(--mono);text-align:center;border-radius:8px;padding:6px 0;background:var(--sunk);color:var(--muted)}
+.rw.got .d{background:var(--ok);color:#fff}
+.rw .t{min-width:0}
+.rw .t b{display:block;font-size:14.5px;overflow-wrap:anywhere}
+.rw .t span{font-size:12px;color:var(--muted)}
+.rw input{width:100%;font:600 14px var(--body);border:1px solid var(--line);border-radius:8px;background:var(--sunk);color:var(--fg);padding:6px 8px}
+.rw button{font:600 12px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:6px 9px;cursor:pointer}
 .verdict{border-radius:12px;padding:12px;background:var(--surface);border:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
 .verdict .dot{width:12px;height:12px;border-radius:50%;margin-top:5px;flex:none;background:var(--vc)}
 .verdict p{margin:2px 0 0;color:var(--muted);font-size:13.5px}
@@ -474,7 +488,11 @@ function renderRoutine(sec){
   };
   routineItems(TODAY).forEach(([k,t,nm]) => {
     const b = el(`<button class="rt-item" aria-pressed="${!!rec.routine[k]}"><span class="tm">${t}</span><span class="nm">${nm}</span><span class="bx">✓</span></button>`);
-    b.onclick = () => { rec.routine[k] = !rec.routine[k]; b.setAttribute("aria-pressed", rec.routine[k]); save(TODAY); paint(); };
+    b.onclick = () => { rec.routine[k] = !rec.routine[k]; b.setAttribute("aria-pressed", rec.routine[k]); save(TODAY); paint();
+      if(rec.routine[k]){
+        if(!checkRewards()){ const sc=routineScore(TODAY);
+          if(sc.n===sc.total && rec.perfectShown!==true){ rec.perfectShown=true; save(TODAY); celebrate("완벽한 하루", `루틴 ${sc.total}개를 전부 지켰어요. +${sc.total*10+30}P`, `루틴 ${routineStreak()}일 연속`); } }
+      } };
     list.append(b);
   });
   paint();
@@ -567,7 +585,8 @@ function paintVerdict(){
 // ---------- PROGRESS ----------
 function renderProgress(v){
   const sec = el(`<section></section>`);
-  sec.append(el(`<h2>체중 변화</h2>`));
+  renderRewards(sec);
+  sec.append(el(`<h2 style="margin-top:8px">체중 변화</h2>`));
   const pts = [{d:BASE.date, w:BASE.weight, base:true}, ...Object.keys(S.days).sort().filter(k=>S.days[k].weight && k!==BASE.date).map(k=>({d:k,w:S.days[k].weight}))];
   sec.append(chart(pts));
 
@@ -790,6 +809,70 @@ function startRest(name, setIdx, sets){
 rbar.querySelector("#rt-plus").onclick = () => { if(rbar.classList.contains("done")){ rbar.classList.remove("done"); RT.end=Date.now(); RT.total=30; } RT.end += 30000; RT.total += 30; if(!RT.iv) RT.iv=setInterval(tickRest,250); tickRest(); };
 rbar.querySelector("#rt-skip").onclick = stopRest;
 document.addEventListener("visibilitychange", () => { if(document.visibilityState==="visible" && RT.end) tickRest(); });
+
+// ---------- rewards ----------
+const MILESTONES = [3,7,14,30,60,90,180];
+const DEFAULT_REWARDS = {3:"보고 싶던 영화 한 편 보기",7:"읽고 싶던 책 한 권 사기",14:"새 운동복 한 벌",30:"러닝화 또는 헬스 장갑",60:"갖고 싶던 물건 하나 (5만 원 이내)",90:"하루 여행 다녀오기",180:"바뀐 몸에 맞는 옷 새로 맞추기"};
+function rewards(){ S.state.rewards = S.state.rewards || {}; S.state.unlocked = S.state.unlocked || {}; return S.state; }
+function points(){
+  let p=0, perfect=0;
+  for(const k of Object.keys(S.days)){
+    const r=S.days[k]; const {n,total}=routineScore(k); p += n*10;
+    if(total && n===total){ p+=30; perfect++; }
+    if(r.done && r.type!=="rest") p+=20;
+  }
+  return {p, perfect};
+}
+function confetti(cv){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const ctx=cv.getContext("2d"); const W=cv.width=cv.offsetWidth*devicePixelRatio, H=cv.height=cv.offsetHeight*devicePixelRatio;
+  const cs=getComputedStyle(document.documentElement); const cols=["--push","--pull","--legs","--ok"].map(v=>cs.getPropertyValue(v).trim()||"#888");
+  const ps=[...Array(120)].map(()=>({x:W/2,y:H*0.45,vx:(Math.random()-0.5)*W*0.03,vy:-Math.random()*H*0.03-H*0.005,r:(4+Math.random()*5)*devicePixelRatio,c:cols[Math.floor(Math.random()*4)],a:Math.random()*6}));
+  let f=0; (function step(){ ctx.clearRect(0,0,W,H); ps.forEach(p=>{ p.vy+=H*0.0009; p.x+=p.vx; p.y+=p.vy; p.a+=0.2; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.a); ctx.fillStyle=p.c; ctx.fillRect(-p.r/2,-p.r/4,p.r,p.r/2); ctx.restore(); }); if(++f<150) requestAnimationFrame(step); else ctx.clearRect(0,0,W,H); })();
+}
+function celebrate(big, text, sub){
+  if(document.querySelector(".cele")) return;
+  const m = el(`<div class="cele" role="dialog" aria-modal="true"><canvas></canvas><div class="card"><div class="plate" style="--c:var(--ok);width:52px;height:52px;margin:0 auto;font-size:18px">★</div><div class="big"></div><p class="tx"></p><p class="sb" style="font-size:12.5px"></p><button class="btn" style="--c:var(--ok);margin-top:6px">좋아요</button></div></div>`);
+  m.querySelector(".big").textContent=big; m.querySelector(".tx").textContent=text; m.querySelector(".sb").textContent=sub||"";
+  m.querySelector("button").onclick=()=>m.remove(); document.body.append(m); confetti(m.querySelector("canvas"));
+  try{ navigator.vibrate && navigator.vibrate([80,60,80]); }catch(e){}
+}
+function checkRewards(){
+  const st = routineStreak(), R = rewards();
+  for(const ms of MILESTONES){
+    if(st>=ms && !R.unlocked[ms]){
+      R.unlocked[ms]=TODAY; saveState();
+      celebrate(`${ms}일 연속 달성`, `보상: ${R.rewards[ms]||DEFAULT_REWARDS[ms]}`, "스스로 정한 보상이에요. 꼭 챙겨주세요.");
+      return true;
+    }
+  }
+  return false;
+}
+function renderRewards(sec){
+  const R = rewards(); const st = routineStreak(); const {p,perfect} = points();
+  const next = MILESTONES.find(m=>!R.unlocked[m] && m>st) || MILESTONES.find(m=>!R.unlocked[m]);
+  sec.append(el(`<h2>보상</h2>`));
+  const top = el(`<div class="grid2"><div class="field"><span class="lbl" style="text-transform:none">루틴 연속</span><span class="num" style="font-size:26px;font-weight:600">${st}<span class="unit"> 일</span></span></div><div class="field"><span class="lbl" style="text-transform:none">포인트</span><span class="num" style="font-size:26px;font-weight:600">${p.toLocaleString()}<span class="unit"> P</span></span></div></div>`);
+  sec.append(top);
+  if(next) sec.append(el(`<div class="field"><div style="display:flex;justify-content:space-between;gap:8px"><span class="lbl" style="text-transform:none">다음 보상까지</span><span class="num" style="font-size:13px;color:var(--muted)">${st} / ${next}일</span></div><div class="bar"><b style="width:${Math.min(100,st/next*100)}%"></b></div><span class="unit" style="font-size:12.5px"></span></div>`));
+  if(next) sec.lastChild.querySelector(".unit").textContent = `${next}일 연속이면: ${R.rewards[next]||DEFAULT_REWARDS[next]}`;
+  const list = el(`<div class="field"><span class="lbl" style="text-transform:none">보상 목록 · 누르면 내 보상으로 바꿀 수 있어요</span><div class="rws"></div><span class="unit" style="font-size:12px">완벽한 날 ${perfect}일 · 체크 1개 10P, 루틴 전부 +30P, 운동 완료 +20P. 음식이나 술은 보상으로 정하지 않기로 해요.</span></div>`);
+  const wrap = list.querySelector(".rws");
+  MILESTONES.forEach(ms=>{
+    const got = R.unlocked[ms];
+    const row = el(`<div class="rw ${got?"got":""}"><span class="d">${ms}일</span><span class="t"><b></b><span>${got?`${parse(got).getMonth()+1}/${parse(got).getDate()} 달성`:"루틴 연속 "+ms+"일"}</span></span><button aria-label="${ms}일 보상 바꾸기">수정</button></div>`);
+    row.querySelector("b").textContent = R.rewards[ms]||DEFAULT_REWARDS[ms];
+    row.querySelector("button").onclick = () => {
+      const t=row.querySelector(".t"); const inp=el(`<input id="rw-${ms}" maxlength="40">`); inp.value=R.rewards[ms]||DEFAULT_REWARDS[ms];
+      t.replaceChildren(inp); inp.focus();
+      const btn=row.querySelector("button"); btn.textContent="저장";
+      btn.onclick=()=>{ const v=inp.value.trim(); if(v) R.rewards[ms]=v; else delete R.rewards[ms]; saveState(); render(); };
+      inp.onkeydown=e=>{ if(e.key==="Enter") btn.onclick(); };
+    };
+    wrap.append(row);
+  });
+  sec.append(list);
+}
 
 // ---------- render ----------
 let pendingRender=false;
