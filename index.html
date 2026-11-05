@@ -145,7 +145,8 @@ nav.tabs button[aria-selected="true"]{color:var(--fg);border-top-color:var(--fg)
 (() => {
 // ---------- plan ----------
 const BASE = {date:"2026-11-05", weight:88, bf:23, smm:38};
-const GOAL = {weight:"81~84", bf:"14~17", smm:"39~40"};
+const GOAL = {weight:"81~84", bf:"14~17", smm:"40.5~41"};
+const PRIOR = {label:"9/19 (운동하던 때)", weight:85.8, bf:19.6, smm:39.7};
 const START = "2026-11-06";
 const PROTEIN = 160;
 const ROT = ["push","pull","legs"];
@@ -400,7 +401,10 @@ function paintVerdict(){
   const ws = weekStart(TODAY);
   const a = weekAvg(ws), b = weekAvg(addDays(ws,-7)), c = weekAvg(addDays(ws,-14));
   let vc="var(--faint)", t="데이터 모으는 중", s="매일 아침 공복 체중을 적으면, 지난주와 비교해서 칼로리 조정이 필요한지 알려드려요.";
-  if(a!=null && b!=null){
+  if(a!=null && b!=null && TODAY < addDays(START,14)){
+    const dlt = a-b;
+    vc="var(--faint)"; t=`이번 주 ${dlt>0?"+":""}${fmt(dlt)}kg · 적응 기간`; s="첫 2주는 술과 짠 음식을 줄이면서 수분이 빠져 빠르게 줄 수 있어요. 칼로리 조정은 3주 차부터 판단해요.";
+  } else if(a!=null && b!=null){
     const dlt = a-b;
     if(dlt<=-1){ vc="var(--warn)"; t=`주 ${fmt(-dlt)}kg 감소 · 너무 빨라요`; s="근육이 같이 빠질 수 있어요. 하루 150kcal 늘리세요."; }
     else if(dlt<=-0.3){ vc="var(--ok)"; t=`주 ${fmt(-dlt)}kg 감소 · 잘 가고 있어요`; s="지금 식단과 운동 그대로 유지하세요."; }
@@ -442,6 +446,7 @@ function renderProgress(v){
   const meas = Object.keys(S.days).sort().filter(k=>S.days[k].bf||S.days[k].smm||S.days[k].waist);
   const tb = el(`<div class="tablebox"><table><thead><tr><th>날짜</th><th>체중 kg</th><th>체지방 %</th><th>골격근 kg</th><th>허리 cm</th></tr></thead><tbody></tbody></table></div>`);
   const body = tb.querySelector("tbody");
+  body.append(el(`<tr style="color:var(--muted)"><td>${PRIOR.label}</td><td class="num">${PRIOR.weight}</td><td class="num">${PRIOR.bf}</td><td class="num">${PRIOR.smm}</td><td class="num">–</td></tr>`));
   body.append(el(`<tr><td>시작 (11/5)</td><td class="num">${BASE.weight}</td><td class="num">${BASE.bf}</td><td class="num">${BASE.smm}</td><td class="num">–</td></tr>`));
   meas.forEach(k=>{ const r=S.days[k]; const d=parse(k);
     body.append(el(`<tr><td>${d.getMonth()+1}/${d.getDate()}</td><td class="num">${fmt(r.weight)}</td><td class="num">${fmt(r.bf)}</td><td class="num">${fmt(r.smm)}</td><td class="num">${fmt(r.waist)}</td></tr>`)); });
