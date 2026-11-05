@@ -92,6 +92,11 @@ section{display:flex;flex-direction:column;gap:12px;margin-top:18px}
 .bar b{display:block;height:100%;background:var(--ok);border-radius:999px}
 .quick{display:flex;gap:6px;flex-wrap:wrap}
 .quick button{font:600 13px var(--mono);padding:7px 11px;border-radius:8px;border:1px solid var(--line);background:var(--sunk);color:var(--fg);cursor:pointer}
+.dopt{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;text-align:left;width:100%;border:1px solid var(--line);background:var(--sunk);color:var(--fg);border-radius:10px;padding:10px 12px;cursor:pointer;font:inherit}
+.dopt b{font-size:14.5px}
+.dopt span{grid-column:1;font-size:12.5px;color:var(--muted)}
+.dopt .g{grid-column:2;grid-row:1 / span 2;font:600 16px var(--mono);color:var(--ok)}
+.dlist{display:flex;flex-direction:column;gap:6px}
 .verdict{border-radius:12px;padding:12px;background:var(--surface);border:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
 .verdict .dot{width:12px;height:12px;border-radius:50%;margin-top:5px;flex:none;background:var(--vc)}
 .verdict p{margin:2px 0 0;color:var(--muted);font-size:13.5px}
@@ -343,10 +348,26 @@ function renderBody(v){
   const q = pf.querySelector(".quick");
   const addP = n => { rec.protein = Math.max(0,(rec.protein||0)+n); save(TODAY);
     pf.querySelector("#pv").innerHTML = `<b style="font-size:22px">${rec.protein}</b> / ${PROTEIN} g`;
-    pf.querySelector("#pb").style.width = Math.min(100,rec.protein/PROTEIN*100)+"%"; };
+    pf.querySelector("#pb").style.width = Math.min(100,rec.protein/PROTEIN*100)+"%"; paintRemain(); };
   [["아침 세트 +37",37],["점심 일반식 +35",35],["쉐이크 한잔 +25",25],["저녁 +50",50],["자기 전 +12",12],["+10",10],["−10",-10]].forEach(([t,n])=>{
     const b=el(`<button>${t}</button>`); b.onclick=()=>addP(n); q.append(b); });
   sec.append(pf);
+
+  const DINNER = [
+    ["닭가슴살 정식","닭가슴살 200g + 계란 1개 + 밥 1공기",52],
+    ["소고기 구이","우둔·홍두깨 200g + 계란 1개 + 밥 1공기",50],
+    ["연어 덮밥","연어 200g + 계란 2개 + 밥 1공기",52],
+    ["수육 한 상","돼지 앞다리 수육 200g + 두부 100g + 밥 1공기",49],
+    ["고등어 정식","고등어구이 1마리 + 계란찜(계란 2개) + 밥 1공기",52],
+    ["편의점 저녁","닭가슴살 2팩 + 삶은 계란 1개 + 햇반",50]
+  ];
+  const dg = el(`<div class="field"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span class="lbl" style="text-transform:none">저녁 50g 만들기</span><span class="num" id="remain" style="font-size:13px;color:var(--muted)"></span></div>
+    <div class="dlist"></div>
+    <span class="unit" style="font-size:12px">먹은 메뉴를 누르면 단백질이 기록돼요. 채소는 마음껏 곁들이세요. 수치는 대략이에요.</span></div>`);
+  DINNER.forEach(([t,d,g])=>{ const b=el(`<button class="dopt"><b>${t}</b><span class="g">+${g}g</span><span>${d}</span></button>`); b.onclick=()=>addP(g); dg.querySelector(".dlist").append(b); });
+  sec.append(dg);
+  function paintRemain(){ const r = PROTEIN-(rec.protein||0); const e=dg.querySelector("#remain"); e.textContent = r>0 ? `오늘 남은 단백질 ${r}g` : "오늘 목표 달성"; e.style.color = r>0?"var(--muted)":"var(--ok)"; }
+  paintRemain();
 
   sec.append(el(`<h2 style="margin-top:8px">이번 주 판정</h2>`));
   const vb = el(`<div id="verdict"></div>`); sec.append(vb);
