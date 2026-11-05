@@ -1,8 +1,8 @@
-name: 밤 9시 기록 알림
+name: 밤 10시 기록 알림
 
 on:
   schedule:
-    - cron: "47 11 * * *"   # 매일 20:47 KST에 시작 (GitHub 예약 실행은 몇 분~십여 분 늦게 도는 경우가 많아요)
+    - cron: "47 12 * * *"   # 매일 21:47 KST에 시작 (GitHub 예약 실행은 몇 분~십여 분 늦게 도는 경우가 많아요)
   workflow_dispatch: {}      # Actions 탭에서 수동으로 테스트 발송
 
 permissions:
@@ -16,7 +16,7 @@ jobs:
         if: github.event_name == 'schedule'
         run: |
           now=$(TZ=Asia/Seoul date +%s)
-          target=$(TZ=Asia/Seoul date -d "21:00" +%s)
+          target=$(TZ=Asia/Seoul date -d "22:00" +%s)
           wait=$(( target - now ))
           if [ $wait -gt 0 ] && [ $wait -lt 1800 ]; then echo "${wait}초 대기"; sleep $wait; fi
 
