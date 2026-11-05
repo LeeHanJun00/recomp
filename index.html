@@ -574,7 +574,7 @@ async function renderNotify(sec){
   let sub = await reg.pushManager.getSubscription();
   const showSub = (sub) => {
     const code = JSON.stringify(sub);
-    say(`<span class="unit" style="font-size:13px">알림이 켜졌어요. 아래 코드를 복사해서 Claude에게 보내주면 매일 밤 10시 알림이 시작돼요.</span>
+    say(`<span class="unit" style="font-size:13px">알림이 켜졌어요. 아래 코드를 복사해서 GitHub 저장소의 PUSH_SUBSCRIPTION 시크릿에 넣으면 매일 밤 10시 알림이 시작돼요.</span>
       <textarea id="nt-code" readonly rows="3" style="width:100%;font:12px var(--mono);border:1px solid var(--line);border-radius:8px;background:var(--sunk);color:var(--fg);padding:8px;resize:none"></textarea>
       <div class="quick"><button id="nt-copy">코드 복사</button><button id="nt-test">알림 테스트</button></div><span class="unit" id="nt-msg" style="font-size:12px"></span>`);
     const ta = body.querySelector("#nt-code"); ta.value = code;
