@@ -462,7 +462,7 @@ function renderToday(v){
 
 // ---------- BODY ----------
 // ---------- daily routine ----------
-const EVENING_FROM = START;
+const EVENING_FROM = "2099-01-01"; // 아침 운동 시간표 사용 (2026-11-13부터)
 function lateHour(d){ return d >= EVENING_FROM ? 22 : 21; }
 function routineItems(d){
   const dow = parse(d).getDay(), ev = d >= EVENING_FROM;
