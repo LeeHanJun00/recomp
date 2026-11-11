@@ -12,7 +12,7 @@ jobs:
   remind:
     runs-on: ubuntu-latest
     steps:
-      - name: 10시까지 기다리기
+      - name: 9시까지 기다리기
         if: github.event_name == 'schedule'
         run: |
           now=$(TZ=Asia/Seoul date +%s)

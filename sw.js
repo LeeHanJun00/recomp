@@ -1,6 +1,6 @@
-// 앱 파일을 폰에 캐시해서 오프라인(헬스장 지하 등)에서도 열리게 하고, 밤 10시 알림을 받습니다.
+// 앱 파일을 폰에 캐시해서 오프라인(헬스장 지하 등)에서도 열리게 하고, 밤 9시 알림을 받습니다.
 // 앱을 수정해서 다시 올릴 때는 아래 버전 숫자를 올려주세요.
-const CACHE = "recomp-v28";
+const CACHE = "recomp-v29";
 const STATUS = "recomp-status";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
@@ -27,7 +27,7 @@ self.addEventListener("fetch", e => {
   }
 });
 
-// ---- 밤 10시 알림 ----
+// ---- 밤 9시 알림 ----
 const pad = n => String(n).padStart(2, "0");
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
 self.addEventListener("push", e => {

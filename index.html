@@ -774,10 +774,10 @@ async function renderNotify(sec){
       <div class="quick"><button id="nt-copy">코드 복사</button><button id="nt-test">알림 테스트</button></div><span class="unit" id="nt-msg" style="font-size:12px"></span>`);
     const ta = body.querySelector("#nt-code"); ta.value = code;
     body.querySelector("#nt-copy").onclick = async () => { try{ await navigator.clipboard.writeText(code); body.querySelector("#nt-msg").textContent="복사했어요."; }catch(e){ ta.select(); body.querySelector("#nt-msg").textContent="길게 눌러 복사해주세요."; } };
-    body.querySelector("#nt-test").onclick = () => reg.showNotification("오늘 기록하셨나요?", {body:"알림 테스트예요. 밤 10시에는 이렇게 와요.", icon:"icon-192.png", badge:"icon-192.png", tag:"test"});
+    body.querySelector("#nt-test").onclick = () => reg.showNotification("오늘 기록하셨나요?", {body:"알림 테스트예요. 밤 9시에는 이렇게 와요.", icon:"icon-192.png", badge:"icon-192.png", tag:"test"});
   };
   if(sub && Notification.permission==="granted"){ showSub(sub); return; }
-  say(`<span class="unit" style="font-size:13px">매일 밤 10시에 "오늘 기록하셨나요?" 알림을 받아요. 그날 '몸 상태 등록 완료'를 눌렀으면 조용한 확인 알림만 와요.</span><button class="btn" id="nt-on" style="--c:var(--pull)">알림 켜기</button>`);
+  say(`<span class="unit" style="font-size:13px">매일 밤 9시에 "오늘 기록하셨나요?" 알림을 받아요. 그날 '몸 상태 등록 완료'를 눌렀으면 조용한 확인 알림만 와요.</span><button class="btn" id="nt-on" style="--c:var(--pull)">알림 켜기</button>`);
   body.querySelector("#nt-on").onclick = async () => {
     const perm = await Notification.requestPermission();
     if(perm!=="granted"){ renderNotify_retry(sec); return; }
