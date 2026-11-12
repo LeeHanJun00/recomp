@@ -186,7 +186,7 @@ nav.tabs button[aria-selected="true"]{color:var(--fg);border-top-color:var(--fg)
 const BASE = {date:"2026-11-05", weight:88, bf:23, smm:38};
 const GOAL = {weight:"81~84", bf:"14~17", smm:"40.5~41"};
 const PRIOR = {label:"9/19 (운동하던 때)", weight:85.8, bf:19.6, smm:39.7};
-const START = "2026-11-09";
+const START = "2026-11-13";
 const PROTEIN = 160;
 const ROT = ["push","pull","legs"];
 const TYPES = {
@@ -367,7 +367,7 @@ const MOTTOS = [
 ];
 function motto(){
   const n = diffDays(START, TODAY);
-  if(n < 0) return {q: n===-1 ? "내일부터 진짜 시작이에요. 운동 가방 챙기고 23시 30분에 자요." : "11월 9일 월요일부터 진짜 변해요. 그 전까지 장보기, 헬스장 기구 확인, 잠드는 시간 맞추기.", sub:`시작까지 D-${-n}`};
+  if(n < 0) return {q: n===-1 ? "내일부터 진짜 시작이에요. 운동 가방 챙기고 23시 30분에 자요." : "11월 13일 금요일 아침부터 진짜 변해요. 그 전까지 장보기, 헬스장 기구 확인, 잠드는 시간 맞추기.", sub:`시작까지 D-${-n}`};
   const sub = `D+${n+1} · 26주 중 ${Math.min(26,weekNo(TODAY))}주 차`;
   const rec = S.days[TODAY] || {};
   if(rec.done && rec.type!=="rest") return {q:"오늘 운동 끝. 이 기록 하나하나가 6개월을 만들어요.", sub};
