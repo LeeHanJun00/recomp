@@ -469,7 +469,7 @@ function routineItems(d){
   const career = d >= addDays(START,14) && dow!==0 && dow!==6 ? [["career","08:20","출근길 커리어 시간"]] : [];
   if(ev) return [
     ["wake","07:00","기상 + 공복 체중"],
-    ["bf","07:30","아침 요거트 세트 + 계란 2개"],
+    ["bf","07:30","그릭요거트 + 계란 3개 + 아몬드"],
     ...career,
     ["shake","15:30","쉐이크 한 잔"],
     ...(dow!==0 ? [["gym","퇴근","집 말고 헬스장 먼저 · 운동"]] : []),
@@ -482,7 +482,7 @@ function routineItems(d){
   return [
     ["wake","06:00","기상 + 공복 체중"],
     ...(dow!==0 ? [["gym","06:10","운동"]] : []),
-    ["bf","07:50","아침 요거트 세트 + 계란 2개"],
+    ["bf","07:50","그릭요거트 + 계란 3개 + 아몬드"],
     ...career,
     ["shake","15:30","쉐이크 한 잔"],
     ["dinner","19:00","저녁 단백질 50g"],
@@ -551,7 +551,7 @@ function renderBody(v){
   const addP = n => { rec.protein = Math.max(0,(rec.protein||0)+n); save(TODAY);
     pf.querySelector("#pv").innerHTML = `<b style="font-size:22px">${rec.protein}</b> / ${PROTEIN} g`;
     pf.querySelector("#pb").style.width = Math.min(100,rec.protein/PROTEIN*100)+"%"; paintRemain(); };
-  [["아침 세트 +37",37],["점심 일반식 +35",35],["쉐이크 한잔 +25",25],["저녁 +50",50],["자기 전 +12",12],["+10",10],["−10",-10]].forEach(([t,n])=>{
+  [["아침 세트 +40",40],["점심 일반식 +35",35],["쉐이크 한잔 +25",25],["저녁 +50",50],["자기 전 +12",12],["+10",10],["−10",-10]].forEach(([t,n])=>{
     const b=el(`<button>${t}</button>`); b.onclick=()=>addP(n); q.append(b); });
   sec.append(pf);
 
