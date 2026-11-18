@@ -292,7 +292,7 @@ function latePopup(){
   const m = el(`<div class="modal" id="latepop" role="dialog" aria-modal="true" aria-labelledby="lp-t"><div class="card">
     <div class="plate" style="--c:var(--ok);width:44px;height:44px;font-size:16px">밤</div>
     <h2 id="lp-t">오늘 기록하셨나요?</h2>
-    <p>체중, 단백질, 소모 칼로리를 적고 '오늘 몸 상태 등록 완료'를 눌러주세요. 1분이면 끝나요.</p>
+    <p>체중이랑 단백질을 적고 '오늘 몸 상태 등록 완료'를 눌러주세요. 1분이면 끝나요.</p>
     <button class="btn" id="lp-go" style="--c:var(--ok)">지금 기록하기</button>
     <button class="btn ghost" id="lp-later">오늘은 넘어가기</button></div></div>`);
   m.querySelector("#lp-go").onclick = () => { m.remove(); document.getElementById("tab-body").click(); };
@@ -304,7 +304,7 @@ document.addEventListener("visibilitychange", () => { if(document.visibilityStat
 setInterval(latePopup, 60000);
 function lateBanner(sec){
   if(new Date().getHours() < lateHour(TODAY) || day().bodyDone) return;
-  const b = el(`<div class="banner" id="latebanner" style="border-left-color:var(--push)"><b>오늘 기록하셨나요?</b> 체중, 단백질, 소모 칼로리를 적고 '오늘 몸 상태 등록 완료'를 눌러주세요.${S.tab!=="body"?' <button class="chip" style="margin-top:8px;--c:var(--ok)" id="gobody">몸 기록으로 가기</button>':""}</div>`);
+  const b = el(`<div class="banner" id="latebanner" style="border-left-color:var(--push)"><b>오늘 기록하셨나요?</b> 체중이랑 단백질을 적고 '오늘 몸 상태 등록 완료'를 눌러주세요.${S.tab!=="body"?' <button class="chip" style="margin-top:8px;--c:var(--ok)" id="gobody">몸 기록으로 가기</button>':""}</div>`);
   const g = b.querySelector("#gobody"); if(g) g.onclick = () => document.getElementById("tab-body").click();
   sec.append(b);
 }
@@ -510,23 +510,17 @@ function routineStreak(){
 function renderRoutine(sec){
   const rec = day(); rec.routine = rec.routine || {};
   const box = el(`<div class="field"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span class="lbl" style="text-transform:none">오늘의 루틴</span><span class="num" id="rt-cnt" style="font-size:13px;color:var(--muted)"></span></div>
-    <div class="bar"><b id="rt-bar"></b></div><div class="rt-list"></div><span class="unit" id="rt-streak" style="font-size:12.5px"></span></div>`);
+    <div class="bar"><b id="rt-bar"></b></div><div class="rt-list"></div></div>`);
   const list = box.querySelector(".rt-list");
   const paint = () => {
     const {n,total} = routineScore(TODAY), need = Math.ceil(total*0.7);
     box.querySelector("#rt-cnt").textContent = `${n} / ${total}`;
     box.querySelector("#rt-bar").style.width = (n/total*100)+"%";
     box.querySelector("#rt-bar").style.background = n>=need ? "var(--ok)" : "var(--warn)";
-    const st = routineStreak();
-    box.querySelector("#rt-streak").textContent = n>=need ? `오늘은 통제한 날이에요 · 루틴 ${st}일 연속` : `${need}개 이상 지키면 통제한 날 · ${st>0?`지금 ${st}일 연속`:"오늘부터 연속 기록 시작"}`;
   };
   routineItems(TODAY).forEach(([k,t,nm]) => {
     const b = el(`<button class="rt-item" aria-pressed="${!!rec.routine[k]}"><span class="tm">${t}</span><span class="nm">${nm}</span><span class="bx">✓</span></button>`);
-    b.onclick = () => { rec.routine[k] = !rec.routine[k]; b.setAttribute("aria-pressed", rec.routine[k]); save(TODAY); paint();
-      if(rec.routine[k]){
-        if(!checkRewards()){ const sc=routineScore(TODAY);
-          if(sc.n===sc.total && rec.perfectShown!==true){ rec.perfectShown=true; save(TODAY); celebrate("완벽한 하루", `루틴 ${sc.total}개를 전부 지켰어요. +${sc.total*10+30}P`, `루틴 ${routineStreak()}일 연속`); } }
-      } };
+    b.onclick = () => { rec.routine[k] = !rec.routine[k]; b.setAttribute("aria-pressed", rec.routine[k]); save(TODAY); paint(); };
     list.append(b);
   });
   paint();
@@ -537,9 +531,8 @@ function renderBody(v){
   const rec = day();
   const sec = el(`<section></section>`);
   lateBanner(sec);
-  renderRoutine(sec);
   sec.append(el(`<h2 style="margin-top:8px">오늘 몸 기록</h2>`));
-  const g = el(`<div class="grid2"></div>`);
+  const g = el(`<div></div>`);
   const mk = (key,label,unit,ph,mode="decimal") => {
     const f = el(`<label class="field" for="f-${key}"><span class="lbl">${label}</span><span class="in"><input id="f-${key}" inputmode="${mode}" placeholder="${ph}" value="${rec[key]??""}"><span class="unit">${unit}</span></span></label>`);
     const i = f.querySelector("input");
@@ -547,9 +540,7 @@ function renderBody(v){
     return f;
   };
   g.append(mk("weight","아침 공복 체중","kg", lastWeight()?fmt(lastWeight()):"88"));
-  g.append(mk("sleep","수면","시간","7"));
   sec.append(g);
-  sec.append(mk("burn","하루 소모 칼로리 (갤럭시 워치)","kcal","2700","numeric"));
 
   const p = rec.protein||0;
   const pf = el(`<div class="field"><div style="display:flex;justify-content:space-between;align-items:baseline"><span class="lbl">단백질</span><span class="num" id="pv"><b style="font-size:22px">${p}</b> / ${PROTEIN} g</span></div>
@@ -619,47 +610,10 @@ function paintVerdict(){
 // ---------- PROGRESS ----------
 function renderProgress(v){
   const sec = el(`<section></section>`);
-  renderRewards(sec);
-  sec.append(el(`<h2 style="margin-top:8px">체중 변화</h2>`));
+  sec.append(el(`<h2>체중 변화</h2>`));
   const pts = [{d:BASE.date, w:BASE.weight, base:true}, ...Object.keys(S.days).sort().filter(k=>S.days[k].weight && k!==BASE.date).map(k=>({d:k,w:S.days[k].weight}))];
   sec.append(chart(pts));
 
-  const ws0 = weekStart(START);
-  const thisW = Math.min(26, weekNo(TODAY));
-  const nThis = workoutsInWeek(weekStart(TODAY));
-  sec.append(el(`<div class="row"><div><div class="t">이번 주 운동 <span class="num">${nThis}</span> / 5</div><div class="s">${nThis>=3?"이번 주는 이미 성공이에요. 3번 이상이면 합격.":"3번 이상 가면 이번 주는 성공이에요."}</div></div><div class="plate" style="--c:${nThis>=3?"var(--ok)":"var(--rest)"};width:40px;height:40px;font-size:15px">${nThis}</div></div>`));
-
-  sec.append(el(`<h2 style="margin-top:8px">26주 지도</h2>`));
-  const grid = el(`<div class="weeks" aria-label="주차별 운동 횟수"></div>`);
-  for(let w=1; w<=26; w++){
-    const st = addDays(ws0,(w-1)*7);
-    const n = st<=TODAY ? workoutsInWeek(st) : 0;
-    const cls = ["wk", n>=3?"ok":n>0?"part":"", DELOAD.includes(w)?"dl":"", w===thisW && TODAY>=START?"now":""].join(" ");
-    grid.append(el(`<div class="${cls}" title="${w}주차 · ${n}회"></div>`));
-  }
-  sec.append(grid);
-  sec.append(el(`<div class="legend"><span><i style="background:var(--ok)"></i>3회 이상</span><span><i style="background:color-mix(in srgb,var(--ok) 40%,var(--sunk))"></i>1~2회</span><span><i style="outline:1.5px dashed var(--warn);outline-offset:-1.5px"></i>디로드 주</span><span><i style="box-shadow:0 0 0 2px var(--fg)"></i>이번 주</span></div>`));
-
-  sec.append(el(`<h2 style="margin-top:8px">월간 인바디</h2>`));
-  const meas = Object.keys(S.days).sort().filter(k=>S.days[k].bf||S.days[k].smm||S.days[k].waist);
-  const tb = el(`<div class="tablebox"><table><thead><tr><th>날짜</th><th>체중 kg</th><th>체지방 %</th><th>골격근 kg</th><th>허리 cm</th></tr></thead><tbody></tbody></table></div>`);
-  const body = tb.querySelector("tbody");
-  body.append(el(`<tr style="color:var(--muted)"><td>${PRIOR.label}</td><td class="num">${PRIOR.weight}</td><td class="num">${PRIOR.bf}</td><td class="num">${PRIOR.smm}</td><td class="num">–</td></tr>`));
-  body.append(el(`<tr><td>시작 (11/5)</td><td class="num">${BASE.weight}</td><td class="num">${BASE.bf}</td><td class="num">${BASE.smm}</td><td class="num">–</td></tr>`));
-  meas.forEach(k=>{ const r=S.days[k]; const d=parse(k);
-    body.append(el(`<tr><td>${d.getMonth()+1}/${d.getDate()}</td><td class="num">${fmt(r.weight)}</td><td class="num">${fmt(r.bf)}</td><td class="num">${fmt(r.smm)}</td><td class="num">${fmt(r.waist)}</td></tr>`)); });
-  body.append(el(`<tr><td><b>6개월 목표</b></td><td class="num">${GOAL.weight}</td><td class="num">${GOAL.bf}</td><td class="num">${GOAL.smm}</td><td class="num">↓</td></tr>`));
-  sec.append(tb);
-
-  const rec = day();
-  const f = el(`<div class="field"><span class="lbl">오늘 측정값 입력 (한 달에 한 번)</span>
-    <div class="grid2" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-      <label class="in" for="m-bf" style="flex-direction:column;align-items:stretch;gap:2px"><span class="unit">체지방 %</span><input id="m-bf" inputmode="decimal" placeholder="23" value="${rec.bf??""}" style="font-size:20px"></label>
-      <label class="in" for="m-smm" style="flex-direction:column;align-items:stretch;gap:2px"><span class="unit">골격근 kg</span><input id="m-smm" inputmode="decimal" placeholder="38" value="${rec.smm??""}" style="font-size:20px"></label>
-      <label class="in" for="m-waist" style="flex-direction:column;align-items:stretch;gap:2px"><span class="unit">허리 cm</span><input id="m-waist" inputmode="decimal" placeholder="cm" value="${rec.waist??""}" style="font-size:20px"></label>
-    </div><span class="unit" style="font-size:12px">사진 3장(앞·옆·뒤)도 같은 날 찍어두세요.</span></div>`);
-  ["bf","smm","waist"].forEach(k=>{ const i=f.querySelector("#m-"+k); i.oninput=()=>{ const n=parseFloat(i.value); rec[k]=isNaN(n)?null:n; save(TODAY); }; i.onchange=()=>render(); });
-  sec.append(f);
   renderBackup(sec);
   renderNotify(sec);
   v.append(sec);
