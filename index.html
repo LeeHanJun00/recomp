@@ -626,22 +626,21 @@ function historyText(which){
     if(ws.length===1) return `${ws[0]}kg × ${sets.map(x=>x.r).join(" / ")}회`;
     return sets.map(x=>`${fmt(x.w)}kg×${x.r}`).join(" / ");
   };
-  const out = [`인간개조 운동 기록 (${parse(TODAY).getMonth()+1}/${parse(TODAY).getDate()} 기준)`, ""];
+  const out = [`인간개조 최근 운동 기록 (${parse(TODAY).getMonth()+1}/${parse(TODAY).getDate()} 기준)`, ""];
   for(const t of order){
-    const T = TYPES[t]; const names = T.ex.map(e=>e[0]);
+    const T = TYPES[t];
     const days = Object.keys(S.days).sort().filter(k => { const r=S.days[k]; return r.type===t && r.ex && Object.values(r.ex).some(a=>(a||[]).some(x=>x&&x.w!=null&&x.r!=null)); });
     out.push(`━━━ ${T.name} (${T.sub}) ━━━`);
     if(!days.length){ out.push("기록 없음",""); continue; }
-    days.forEach((k,i)=>{
-      const d = parse(k); out.push(`▶ ${i+1}회차 · ${d.getMonth()+1}/${d.getDate()} (${DOW[d.getDay()]})`);
-      const r = S.days[k];
-      const keys = [...names.filter(n=>r.ex[n]), ...Object.keys(r.ex).filter(n=>!names.includes(n))];
-      for(const n of keys){
-        const sets = (r.ex[n]||[]).filter(x=>x&&x.w!=null&&x.r!=null);
-        if(sets.length) out.push(`  · ${n}: ${fmtSets(sets)}`);
-      }
-      out.push("");
-    });
+    const k = days[days.length-1], d = parse(k), r = S.days[k];
+    out.push(`▶ ${d.getMonth()+1}/${d.getDate()} (${DOW[d.getDay()]}) · ${days.length}회차`);
+    for(const [n,cnt,range] of T.ex){
+      const sets = (r.ex[n]||[]).filter(x=>x&&x.w!=null&&x.r!=null);
+      if(!sets.length){ out.push(`  · ${n}: 기록 없음`); continue; }
+      const up = sets.length>=cnt && sets.slice(0,cnt).every(x=>x.r>=topRep(range));
+      out.push(`  · ${n}: ${fmtSets(sets)}${up?"  ↑ 다음엔 무게 올리기":""}`);
+    }
+    out.push("");
   }
   return out.join("\n").trim();
 }
@@ -650,8 +649,8 @@ async function copyText(txt){
   try{ const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="absolute"; ta.style.left="-9999px"; document.body.append(ta); ta.select(); const ok=document.execCommand("copy"); ta.remove(); return ok; }catch(e){ return false; }
 }
 function renderCopy(sec){
-  sec.append(el(`<h2 style="margin-top:8px">운동 기록 복사</h2>`));
-  const box = el(`<div class="field"><div class="chips"></div><span class="unit" id="cp-msg" style="font-size:12.5px">누르면 날짜별 무게×횟수가 복사돼요. 대화창에 붙여넣으면 돼요.</span><textarea id="cp-area" readonly hidden style="width:100%;min-height:160px;font:13px var(--mono);border:1px solid var(--line);border-radius:8px;background:var(--sunk);color:var(--fg);padding:8px"></textarea></div>`);
+  sec.append(el(`<h2 style="margin-top:8px">최근 운동 기록 복사</h2>`));
+  const box = el(`<div class="field"><div class="chips"></div><span class="unit" id="cp-msg" style="font-size:12.5px">누르면 마지막으로 한 날의 무게×횟수가 복사돼요. 대화창에 붙여넣으면 돼요.</span><textarea id="cp-area" readonly hidden style="width:100%;min-height:160px;font:13px var(--mono);border:1px solid var(--line);border-radius:8px;background:var(--sunk);color:var(--fg);padding:8px"></textarea></div>`);
   const chips = box.querySelector(".chips"), msg = box.querySelector("#cp-msg"), area = box.querySelector("#cp-area");
   [["all","전체","var(--fg)"],["push","밀기",TYPES.push.c],["pull","당기기",TYPES.pull.c],["legs","하체",TYPES.legs.c]].forEach(([k,label,c])=>{
     const b = el(`<button class="chip" style="--c:${c}"><i></i>${label} 복사</button>`);
