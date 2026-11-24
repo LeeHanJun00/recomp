@@ -613,10 +613,57 @@ function renderProgress(v){
   sec.append(el(`<h2>체중 변화</h2>`));
   const pts = [{d:BASE.date, w:BASE.weight, base:true}, ...Object.keys(S.days).sort().filter(k=>S.days[k].weight && k!==BASE.date).map(k=>({d:k,w:S.days[k].weight}))];
   sec.append(chart(pts));
+  renderCopy(sec);
 
   renderBackup(sec);
   renderNotify(sec);
   v.append(sec);
+}
+function historyText(which){
+  const order = which==="all" ? ["push","pull","legs"] : [which];
+  const fmtSets = sets => {
+    const ws = [...new Set(sets.map(x=>fmt(x.w)))];
+    if(ws.length===1) return `${ws[0]}kg × ${sets.map(x=>x.r).join(" / ")}회`;
+    return sets.map(x=>`${fmt(x.w)}kg×${x.r}`).join(" / ");
+  };
+  const out = [`인간개조 운동 기록 (${parse(TODAY).getMonth()+1}/${parse(TODAY).getDate()} 기준)`, ""];
+  for(const t of order){
+    const T = TYPES[t]; const names = T.ex.map(e=>e[0]);
+    const days = Object.keys(S.days).sort().filter(k => { const r=S.days[k]; return r.type===t && r.ex && Object.values(r.ex).some(a=>(a||[]).some(x=>x&&x.w!=null&&x.r!=null)); });
+    out.push(`━━━ ${T.name} (${T.sub}) ━━━`);
+    if(!days.length){ out.push("기록 없음",""); continue; }
+    days.forEach((k,i)=>{
+      const d = parse(k); out.push(`▶ ${i+1}회차 · ${d.getMonth()+1}/${d.getDate()} (${DOW[d.getDay()]})`);
+      const r = S.days[k];
+      const keys = [...names.filter(n=>r.ex[n]), ...Object.keys(r.ex).filter(n=>!names.includes(n))];
+      for(const n of keys){
+        const sets = (r.ex[n]||[]).filter(x=>x&&x.w!=null&&x.r!=null);
+        if(sets.length) out.push(`  · ${n}: ${fmtSets(sets)}`);
+      }
+      out.push("");
+    });
+  }
+  return out.join("\n").trim();
+}
+async function copyText(txt){
+  try{ await navigator.clipboard.writeText(txt); return true; }catch(e){}
+  try{ const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="absolute"; ta.style.left="-9999px"; document.body.append(ta); ta.select(); const ok=document.execCommand("copy"); ta.remove(); return ok; }catch(e){ return false; }
+}
+function renderCopy(sec){
+  sec.append(el(`<h2 style="margin-top:8px">운동 기록 복사</h2>`));
+  const box = el(`<div class="field"><div class="chips"></div><span class="unit" id="cp-msg" style="font-size:12.5px">누르면 날짜별 무게×횟수가 복사돼요. 대화창에 붙여넣으면 돼요.</span><textarea id="cp-area" readonly hidden style="width:100%;min-height:160px;font:13px var(--mono);border:1px solid var(--line);border-radius:8px;background:var(--sunk);color:var(--fg);padding:8px"></textarea></div>`);
+  const chips = box.querySelector(".chips"), msg = box.querySelector("#cp-msg"), area = box.querySelector("#cp-area");
+  [["all","전체","var(--fg)"],["push","밀기",TYPES.push.c],["pull","당기기",TYPES.pull.c],["legs","하체",TYPES.legs.c]].forEach(([k,label,c])=>{
+    const b = el(`<button class="chip" style="--c:${c}"><i></i>${label} 복사</button>`);
+    b.onclick = async () => {
+      const txt = historyText(k); area.value = txt;
+      const ok = await copyText(txt);
+      if(ok){ msg.textContent = `${label} 기록을 복사했어요. 대화창에 붙여넣으면 돼요.`; area.hidden = true; }
+      else { msg.textContent = "자동 복사가 안 돼서 아래 글을 길게 눌러 전체 선택 후 복사해 주세요."; area.hidden = false; area.focus(); area.select(); }
+    };
+    chips.append(b);
+  });
+  sec.append(box);
 }
 function chart(pts){
   const box = el(`<div class="chartbox"></div>`);
