@@ -654,18 +654,13 @@ async function copyText(txt){
 }
 function renderCopy(sec){
   sec.append(el(`<h2 style="margin-top:8px">최근 운동 기록 복사</h2>`));
-  const box = el(`<div class="field"><div class="chips"></div><span class="unit" id="cp-msg" style="font-size:12.5px">누르면 마지막으로 한 날의 무게×횟수가 복사돼요. 대화창에 붙여넣으면 돼요.</span><textarea id="cp-area" readonly hidden style="width:100%;min-height:160px;font:13px var(--mono);border:1px solid var(--line);border-radius:8px;background:var(--sunk);color:var(--fg);padding:8px"></textarea></div>`);
-  const chips = box.querySelector(".chips"), msg = box.querySelector("#cp-msg"), area = box.querySelector("#cp-area");
-  [["all","전체","var(--fg)"],["push","밀기",TYPES.push.c],["pull","당기기",TYPES.pull.c],["legs","하체",TYPES.legs.c]].forEach(([k,label,c])=>{
-    const b = el(`<button class="chip" style="--c:${c}"><i></i>${label} 복사</button>`);
-    b.onclick = async () => {
-      const txt = historyText(k); area.value = txt;
-      const ok = await copyText(txt);
-      if(ok){ msg.textContent = `${label} 기록을 복사했어요. 대화창에 붙여넣으면 돼요.`; area.hidden = true; }
-      else { msg.textContent = "자동 복사가 안 돼서 아래 글을 길게 눌러 전체 선택 후 복사해 주세요."; area.hidden = false; area.focus(); area.select(); }
-    };
-    chips.append(b);
-  });
+  const box = el(`<div class="field" style="gap:8px"><button class="btn ghost" id="cp-all">현재 기록 복사 (밀기 · 당기기 · 하체)</button><span class="unit" id="cp-msg" style="font-size:12.5px;text-align:center">세 가지 운동의 마지막 기록이 한 번에 복사돼요.</span><textarea id="cp-area" readonly hidden style="width:100%;min-height:160px;font:13px var(--mono);border:1px solid var(--line);border-radius:8px;background:var(--sunk);color:var(--fg);padding:8px"></textarea></div>`);
+  box.querySelector("#cp-all").onclick = async () => {
+    const txt = historyText("all"), area = box.querySelector("#cp-area"), msg = box.querySelector("#cp-msg");
+    area.value = txt;
+    if(await copyText(txt)){ msg.textContent = "복사했어요. 대화창에 붙여넣으면 돼요."; area.hidden = true; }
+    else { msg.textContent = "자동 복사가 안 돼서 아래 글을 길게 눌러 전체 선택 후 복사해 주세요."; area.hidden = false; area.focus(); area.select(); }
+  };
   sec.append(box);
 }
 function chart(pts){
