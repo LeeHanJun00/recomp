@@ -638,7 +638,6 @@ function historyText(which){
     out.push(`━━━ ${T.name} (${T.sub}) ━━━`);
     if(!days.length){ out.push("기록 없음",""); continue; }
     const k = days[days.length-1], d = parse(k), r = S.days[k];
-    out.push(`▶ ${days.length}회차`);
     for(const [n,cnt,range] of T.ex){
       const sets = (r.ex[n]||[]).filter(x=>x&&x.w!=null&&x.r!=null);
       if(!sets.length){ out.push(`  · ${n}: 기록 없음`); continue; }
