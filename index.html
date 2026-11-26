@@ -461,6 +461,14 @@ function renderToday(v){
   };
   updateDoneBtn();
   sec.append(btn);
+  const cpBox = el(`<div class="field" style="gap:8px"><button class="btn ghost" id="cp-now">현재 기록 복사 (밀기 · 당기기 · 하체)</button><span class="unit" id="cp-now-msg" style="font-size:12.5px;text-align:center">세 가지 운동의 마지막 기록이 한 번에 복사돼요.</span><textarea id="cp-now-area" readonly hidden style="width:100%;min-height:160px;font:13px var(--mono);border:1px solid var(--line);border-radius:8px;background:var(--sunk);color:var(--fg);padding:8px"></textarea></div>`);
+  cpBox.querySelector("#cp-now").onclick = async () => {
+    const txt = historyText("all"), area = cpBox.querySelector("#cp-now-area"), msg = cpBox.querySelector("#cp-now-msg");
+    area.value = txt;
+    if(await copyText(txt)){ msg.textContent = "복사했어요. 대화창에 붙여넣으면 돼요."; area.hidden = true; }
+    else { msg.textContent = "자동 복사가 안 돼서 아래 글을 길게 눌러 전체 선택 후 복사해 주세요."; area.hidden = false; area.focus(); area.select(); }
+  };
+  sec.append(cpBox);
   if(rec.done && type!=="rest") sec.append(el(`<p class="s" style="text-align:center;color:var(--muted);margin:0">다음 운동은 <b>${TYPES[ROT[S.state.next]].name}</b>예요. 몸 기록 탭에서 체중과 단백질도 적어주세요.</p>`));
   v.append(sec);
 }
