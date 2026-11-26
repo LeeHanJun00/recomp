@@ -392,8 +392,6 @@ function renderToday(v){
   const w = weekNo(TODAY), ph = phaseOf(w);
   const sec = el(`<section></section>`);
   lateBanner(sec);
-  const m = motto(); const mc = el(`<div class="motto"><q></q><small></small></div>`);
-  mc.querySelector("q").textContent = m.q; mc.querySelector("small").textContent = m.sub; sec.append(mc);
   if(DELOAD.includes(w)) sec.append(el(`<div class="banner"><b>디로드 주간</b> · 이번 주는 평소 무게의 60%로 가볍게 해요. 쉬는 게 아니라 다시 성장하기 위한 주간이에요.</div>`));
   else sec.append(el(`<div class="banner" style="border-left-color:var(--ok)"><b>${ph.name}</b> · ${ph.tip}</div>`));
 
