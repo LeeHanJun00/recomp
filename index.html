@@ -631,14 +631,14 @@ function historyText(which){
     if(ws.length===1) return `${ws[0]}kg × ${sets.map(x=>x.r).join(" / ")}회`;
     return sets.map(x=>`${fmt(x.w)}kg×${x.r}`).join(" / ");
   };
-  const out = [`인간개조 최근 운동 기록 (${parse(TODAY).getMonth()+1}/${parse(TODAY).getDate()} 기준)`, ""];
+  const out = ["인간개조 최근 운동 기록", ""];
   for(const t of order){
     const T = TYPES[t];
     const days = Object.keys(S.days).sort().filter(k => { const r=S.days[k]; return r.type===t && r.ex && Object.values(r.ex).some(a=>(a||[]).some(x=>x&&x.w!=null&&x.r!=null)); });
     out.push(`━━━ ${T.name} (${T.sub}) ━━━`);
     if(!days.length){ out.push("기록 없음",""); continue; }
     const k = days[days.length-1], d = parse(k), r = S.days[k];
-    out.push(`▶ ${d.getMonth()+1}/${d.getDate()} (${DOW[d.getDay()]}) · ${days.length}회차`);
+    out.push(`▶ ${days.length}회차`);
     for(const [n,cnt,range] of T.ex){
       const sets = (r.ex[n]||[]).filter(x=>x&&x.w!=null&&x.r!=null);
       if(!sets.length){ out.push(`  · ${n}: 기록 없음`); continue; }
