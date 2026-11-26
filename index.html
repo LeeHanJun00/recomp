@@ -266,6 +266,8 @@ function lastSession(type, exName, before){
 }
 function topRep(range){ return Number(String(range).split("~").pop()); }
 function botRep(range){ return Number(String(range).split("~")[0]); }
+// 복합 운동: 모든 세트 최소 횟수 이상이면 증량 / 고립 운동: 범위 맨 위까지 채우면 증량
+function upRep(name,range){ return (CAT[name]==="복합" || name==="시티드 케이블 로우 (좁은 그립)") ? botRep(range) : topRep(range); }
 function phaseOf(w){ return PHASES.find(p => w>=p.w[0] && w<=p.w[1]) || PHASES[2]; }
 function fmt(n,dg=1){ return (n==null||isNaN(n)) ? "–" : Number(n).toFixed(dg).replace(/\.0$/,""); }
 function weekAvg(ws){
@@ -413,7 +415,7 @@ function renderToday(v){
   for(const [name,sets,range,alt] of T.ex){
     const last = lastSession(type,name,TODAY);
     const cur = rec.ex[name] = rec.ex[name] || [];
-    const hitTop = last && last.sets.length>=sets && last.sets.slice(0,sets).every(s=>s && s.r!=null && s.r>=botRep(range));
+    const hitTop = last && last.sets.length>=sets && last.sets.slice(0,sets).every(s=>s && s.r!=null && s.r>=upRep(name,range));
     const card = el(`<div class="ex" style="--c:${T.c}">
       <div class="ex-top"><div class="ex-name">${name}${alt?`<span style="display:block;font-weight:500;font-size:12px;color:var(--muted)">${alt}</span>`:""}</div><div class="target">${sets} × ${range}</div></div>
       <div class="last">${last ? "지난번 "+last.sets.filter(s=>s&&s.w!=null).map(s=>`${fmt(s.w)}×${s.r}`).join(", ") : "첫 기록이에요 · 가벼운 무게로 자세부터"}${hitTop?'<span class="up">↑ 무게 올릴 때</span>':""}</div>
@@ -642,7 +644,7 @@ function historyText(which){
     for(const [n,cnt,range] of T.ex){
       const sets = (r.ex[n]||[]).filter(x=>x&&x.w!=null&&x.r!=null);
       if(!sets.length){ out.push(`  · ${n}: 기록 없음`); continue; }
-      const up = sets.length>=cnt && sets.slice(0,cnt).every(x=>x.r>=botRep(range));
+      const up = sets.length>=cnt && sets.slice(0,cnt).every(x=>x.r>=upRep(n,range));
       out.push(`  · ${n}: ${fmtSets(sets)}${up?"  ↑ 다음엔 무게 올리기":""}`);
     }
     out.push("");
